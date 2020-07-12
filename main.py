@@ -45,11 +45,8 @@ def dirscanner(dirlist):
 
     filelist = []
     with os.scandir(dirlist) as it:
-        for file in it:
-            if file.is_dir():
-                filelist.append(dirscanner(file.path))
-            if not file.name.startswith('.') and file.is_file():
-                filelist.append(file.path)
+        for item in it:
+            filelist.append(item)
 
     return(filelist)
 
@@ -58,40 +55,49 @@ def getdir(parent=musiclib):
     wtitle = 'Choose music library'
     root.directory = filedialog.askdirectory(
         initialdir=musiclib, title=wtitle)
-    root.files = []
 
+    root.items = dirscanner(root.directory)
 
+    root.destroy()
 
-    return(root.files)
+    return(root.items)
 
 
 def list_menu(stdscr, menu):
+
     stdscr.clear()
 
     for i, item in enumerate(menu):
+        if type(item) is list:
+            menu.remove(item)
+            continue
         stdscr.addstr(i, 0, item)
 
 
 def main(stdscr):
 
-    files = getdir()
+    contents = getdir()
+    entries = [entry.name for entry in contents]
 
-    list_menu(stdscr, files)
+    list_menu(stdscr, entries)
 
-    # Clear screen
-    # stdscr.clear()
+    """
+    Clear screen
+    stdscr.clear()
 
-    # defines color pairs; this one is red fore, white back
-    # curses.init_pair(1, curses.COLOR_RED, curses.COLOR_WHITE)
-    # stdscr.addstr(0, 0, "Pretty text", curses.color_pair(1))
+    defines color pairs; this one is red fore, white back
+    curses.init_pair(1, curses.COLOR_RED, curses.COLOR_WHITE)
+    stdscr.addstr(0, 0, "Pretty text", curses.color_pair(1))
 
-    # # This raises ZeroDivisionError when i == 10.
-    # for i in range(0, 11):
-    #     v = i - 10
-    #     stdscr.addstr(i, 0, '10 divided by {} is {}'.format(v, 10 / v))
+    # This raises ZeroDivisionError when i == 10.
+    for i in range(0, 11):
+        v = i - 10
+        stdscr.addstr(i, 0, '10 divided by {} is {}'.format(v, 10 / v))
 
+    """
     stdscr.refresh()
     stdscr.getkey()
 
 
+# print()
 wrapper(main)
