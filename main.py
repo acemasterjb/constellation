@@ -1,45 +1,22 @@
 import os
-from playsound import playsound
+from libs.playsound.playsound import playsound
 from tkinter import filedialog
 from tkinter import *
-from pathlib import Path
+# from pathlib import Path
 import curses
 from curses import wrapper
+# import socket
+import threading
+# import daemon
 
 # - ask for directory
 # - list songs in command window
 # - choose song
 # - give option for shuffle, repeat, etc
 
-# initialize cmd to run curse
-stdscr = curses.initscr()
-
-# # turn off key echoing in cmd
-# curses.noecho()
-# # execute commands without 'Enter'
-# curses.cbreak()
-# # allow curses to handle special nav keys
-# stdscr.keypad(True)
-
-# # the following 3 statements terminates curses
-# curses.nocbreak()
-# stdscr.keypad(False)
-# curses.echo()
-
-# # restore cmd to default
-# curses.endwin()
-
-# window dimensions
-begin_x = 20
-begin_y = 7
-height = 5
-width = 40
-
 musiclib = os.environ['USERPROFILE'] + '\\music'
 root = Tk()
-
-# initialize window
-win = curses.newwin(height, width, begin_y, begin_x)
+song = playsound()
 
 def dirscanner(dirlist):
 
@@ -50,53 +27,131 @@ def dirscanner(dirlist):
 
     return(filelist)
 
-def getdir(parent=musiclib):
+def getdir(seek=0, wdir=musiclib):
 
-    wtitle = 'Choose music library'
-    root.directory = filedialog.askdirectory(
-        initialdir=musiclib, title=wtitle)
+    if seek:
+        root.items = dirscanner(wdir)
+    else:
+        wtitle = 'Choose music library'
+        root.directory = filedialog.askdirectory(
+            initialdir=wdir, title=wtitle)
 
-    root.items = dirscanner(root.directory)
+        root.items = dirscanner(root.directory)
 
-    root.destroy()
+        root.destroy()
 
     return(root.items)
 
 
-def list_menu(stdscr, menu):
+def print_items(disp, menu, selected):
 
-    stdscr.clear()
+    disp.clear()
+    disp.box()
 
     for i, item in enumerate(menu):
-        if type(item) is list:
-            menu.remove(item)
-            continue
-        stdscr.addstr(i, 0, item)
+        if i == selected:
+            disp.attron(curses.color_pair(1))
+        disp.addstr(i, 0, item.name)
+        disp.attroff(curses.color_pair(1))
+
+    disp.refresh()
+
+
+# def play_controls(key=None, selected=None):
+
+#     is_enter = (key == curses.KEY_ENTER or key in [10, 13])
+
+#     if key:
+#         if is_enter or key == ord('p'):
+#             if song.get_status == "paused":
+#                 song.play()
+#             else:
+#                 song.pause()
+#         if key == ord('s'):
+#             song.stop()
+
+#         return
+
+#     song.play(selected)
+
+
+# def serve_forever(disp, key=None, selected=None):
+#     while True:
+#         # conn, address = server.accept()
+#         # accept key strokes
+#         if not key:
+#             key = disp.getch()
+#         # send key stroke to player
+#         thread = threading.Thread(target=play_controls, args=[key, selected])
+#         key = None
+#         thread.start()
+
+
+def list_menu(disp, menu, selected):
+
+    while True:
+        print_items(disp, menu, selected)
+
+        key = disp.getch()
+        is_enter = (key == curses.KEY_ENTER or key in [10, 13])
+
+        disp.clear()
+
+        if key == curses.KEY_UP and selected > 0:
+            selected -= 1
+        if key == curses.KEY_DOWN and selected < len(menu) - 1:
+            selected += 1
+        # if key == ord('p'):
+        #     if song.get_status() == 'paused':
+        #         song.resume()
+        #     else:
+        #         try:
+        #             song.pause()
+        #         except:
+        #             break
+
+        if key == ord('q'):
+            """
+                - position cursor to len(win) - 1, 0
+                - show cursor
+                - accept input
+                - if 'q', quit
+            """
+            try:
+                thread.stop()
+                break
+            except:
+                break
+        elif is_enter:
+            if menu[selected].is_dir():
+                contents = getdir(seek=1, wdir=menu[selected].path)
+                list_menu(disp, contents, 0)
+            elif menu[selected].is_file():
+                # create and start a thread that plays music
+                thread = threading.Thread(target=song.play,
+                                          args=[menu[selected]])
+                thread.start()
+                # serve_forever(disp, curses.KEY_ENTER, menu[selected])
 
 
 def main(stdscr):
 
+    # stdscr.border(0)
+
+    curses.curs_set(False)
+    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+    y, x = stdscr.getmaxyx()
+    disp = curses.newwin(y - 3, x - 3, 3, 3)
+    disp.keypad(True)
+    # cmd = curses.newwin(5, x, 0, 0)
+
+    curr_row = 0
     contents = getdir()
-    entries = [entry.name for entry in contents]
 
-    list_menu(stdscr, entries)
+    list_menu(disp, contents, curr_row)
 
-    """
-    Clear screen
-    stdscr.clear()
-
-    defines color pairs; this one is red fore, white back
-    curses.init_pair(1, curses.COLOR_RED, curses.COLOR_WHITE)
-    stdscr.addstr(0, 0, "Pretty text", curses.color_pair(1))
-
-    # This raises ZeroDivisionError when i == 10.
-    for i in range(0, 11):
-        v = i - 10
-        stdscr.addstr(i, 0, '10 divided by {} is {}'.format(v, 10 / v))
-
-    """
-    stdscr.refresh()
-    stdscr.getkey()
+    disp.refresh()
+    disp.getkey()
 
 
 # print()
