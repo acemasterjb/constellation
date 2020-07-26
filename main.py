@@ -57,36 +57,6 @@ def print_items(disp, menu, selected):
     disp.refresh()
 
 
-# def play_controls(key=None, selected=None):
-
-#     is_enter = (key == curses.KEY_ENTER or key in [10, 13])
-
-#     if key:
-#         if is_enter or key == ord('p'):
-#             if song.get_status == "paused":
-#                 song.play()
-#             else:
-#                 song.pause()
-#         if key == ord('s'):
-#             song.stop()
-
-#         return
-
-#     song.play(selected)
-
-
-# def serve_forever(disp, key=None, selected=None):
-#     while True:
-#         # conn, address = server.accept()
-#         # accept key strokes
-#         if not key:
-#             key = disp.getch()
-#         # send key stroke to player
-#         thread = threading.Thread(target=play_controls, args=[key, selected])
-#         key = None
-#         thread.start()
-
-
 def list_menu(disp, menu, selected):
 
     while True:
@@ -101,14 +71,14 @@ def list_menu(disp, menu, selected):
             selected -= 1
         if key == curses.KEY_DOWN and selected < len(menu) - 1:
             selected += 1
-        # if key == ord('p'):
-        #     if song.get_status() == 'paused':
-        #         song.resume()
-        #     else:
-        #         try:
-        #             song.pause()
-        #         except:
-        #             break
+        if key == ord('p'):
+            if song.get_status() == 'paused':
+                song.resume()
+            else:
+                try:
+                    song.pause()
+                except:
+                    break
 
         if key == ord('q'):
             """
@@ -127,11 +97,12 @@ def list_menu(disp, menu, selected):
                 contents = getdir(seek=1, wdir=menu[selected].path)
                 list_menu(disp, contents, 0)
             elif menu[selected].is_file():
+                # if song.get_status == "playing":
+                #     thread.stop()
                 # create and start a thread that plays music
                 thread = threading.Thread(target=song.play,
-                                          args=[menu[selected]])
+                                          args=[menu[selected].path])
                 thread.start()
-                # serve_forever(disp, curses.KEY_ENTER, menu[selected])
 
 
 def main(stdscr):
