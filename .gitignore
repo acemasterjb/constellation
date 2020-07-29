@@ -1,0 +1,7 @@
+# byte-compiled
+__pycache__/
+*.py[cod]
+*$py.class
+
+# test files
+*.mp3

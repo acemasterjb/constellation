@@ -7,6 +7,7 @@ import curses
 from curses import wrapper
 # import socket
 import threading
+from lumen import player
 # import daemon
 
 # - ask for directory
@@ -71,14 +72,20 @@ def list_menu(disp, menu, selected):
             selected -= 1
         if key == curses.KEY_DOWN and selected < len(menu) - 1:
             selected += 1
-        if key == ord('p'):
-            if song.get_status() == 'paused':
-                song.resume()
-            else:
-                try:
-                    song.pause()
-                except:
-                    break
+        if is_enter:
+            if menu[selected].is_dir():
+                contents = getdir(seek=1, wdir=menu[selected].path)
+                list_menu(disp, contents, 0)
+
+            elif menu[selected].is_file():
+                # create and start a thread that plays music
+                p = player()
+                th = threading.Thread(target=p.run, args=[
+                                      disp, menu[selected].path])
+                th.start()
+                p.stop()
+                th.join()
+                # th.play(menu[selected].path)
 
         if key == ord('q'):
             """
@@ -88,21 +95,9 @@ def list_menu(disp, menu, selected):
                 - if 'q', quit
             """
             try:
-                thread.stop()
-                break
+                p.stop()
             except:
                 break
-        elif is_enter:
-            if menu[selected].is_dir():
-                contents = getdir(seek=1, wdir=menu[selected].path)
-                list_menu(disp, contents, 0)
-            elif menu[selected].is_file():
-                # if song.get_status == "playing":
-                #     thread.stop()
-                # create and start a thread that plays music
-                thread = threading.Thread(target=song.play,
-                                          args=[menu[selected].path])
-                thread.start()
 
 
 def main(stdscr):
