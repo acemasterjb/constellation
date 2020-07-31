@@ -6,8 +6,8 @@ from tkinter import *
 import curses
 from curses import wrapper
 # import socket
-import threading
-from lumen import player
+# from threading import Thread, Event, Condition, Lock
+# from lumen import player
 # import daemon
 
 # - ask for directory
@@ -79,13 +79,16 @@ def list_menu(disp, menu, selected):
 
             elif menu[selected].is_file():
                 # create and start a thread that plays music
-                p = player()
-                th = threading.Thread(target=p.run, args=[
-                                      disp, menu[selected].path])
-                th.start()
-                p.stop()
-                th.join()
+                # playing = Event()
+                # cond = Condition(Lock())
+                p = playsound()
+                p.play(menu[selected].path, False)
+                # th = Thread(target=p.play, args=(menu[selected].path, False))
+                # th.start()
+                # playing.wait()
+                # th.join()
                 # th.play(menu[selected].path)
+            # p.stop()
 
         if key == ord('q'):
             """
@@ -94,14 +97,20 @@ def list_menu(disp, menu, selected):
                 - accept input
                 - if 'q', quit
             """
+            break
+
+        if key == ord('p'):
             try:
+                if p.get_status() == "paused":
+                    p.resume(False)
+                    continue
                 p.stop()
-            except:
-                break
+                p.pause()
+            except NameError:
+                pass
 
 
 def main(stdscr):
-
     # stdscr.border(0)
 
     curses.curs_set(False)
