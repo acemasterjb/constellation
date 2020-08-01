@@ -1,13 +1,15 @@
 import os
-from libs.playsound.playsound import playsound
+# from libs.playsound.playsound import playsound
 from tkinter import filedialog
 from tkinter import *
 # from pathlib import Path
 import curses
 from curses import wrapper
 # import socket
-# from threading import Thread, Event, Condition, Lock
-# from lumen import player
+from threading import Thread
+# from keyboard import is_pressed
+# from queue import Queue
+from lumen import player
 # import daemon
 
 # - ask for directory
@@ -17,7 +19,7 @@ from curses import wrapper
 
 musiclib = os.environ['USERPROFILE'] + '\\music'
 root = Tk()
-song = playsound()
+# song = playsound()
 
 def dirscanner(dirlist):
 
@@ -30,7 +32,7 @@ def dirscanner(dirlist):
 
 def getdir(seek=0, wdir=musiclib):
 
-    if seek:
+    if seek and wdir:
         root.items = dirscanner(wdir)
     else:
         wtitle = 'Choose music library'
@@ -58,56 +60,58 @@ def print_items(disp, menu, selected):
     disp.refresh()
 
 
-def list_menu(disp, menu, selected):
+def nav_menu(disp, menu, selected):
+
+    # p = playsound()
 
     while True:
-        print_items(disp, menu, selected)
-
         key = disp.getch()
         is_enter = (key == curses.KEY_ENTER or key in [10, 13])
 
-        disp.clear()
-
         if key == curses.KEY_UP and selected > 0:
             selected -= 1
+            print_items(disp, menu, selected)
         if key == curses.KEY_DOWN and selected < len(menu) - 1:
             selected += 1
+            print_items(disp, menu, selected)
         if is_enter:
             if menu[selected].is_dir():
-                contents = getdir(seek=1, wdir=menu[selected].path)
-                list_menu(disp, contents, 0)
+                top_dir = os.path.dirname(menu[0])
+                prev = getdir(seek=1, wdir=os.path.dirname(top_dir))
+                sel_path = menu[selected].path
+                menu = getdir(1, sel_path)
+                selected = 0
+                print_items(disp, menu, selected)
 
             elif menu[selected].is_file():
-                # create and start a thread that plays music
-                # playing = Event()
-                # cond = Condition(Lock())
-                p = playsound()
-                p.play(menu[selected].path, False)
-                # th = Thread(target=p.play, args=(menu[selected].path, False))
-                # th.start()
-                # playing.wait()
-                # th.join()
-                # th.play(menu[selected].path)
-            # p.stop()
-
+                # q = Queue
+                p = player()
+                t = Thread(target=p.run, args=(menu[selected].path,))
+                t.start()
+                t.join()
+        # try:
+        #     if key == ord('p'):
+        #         t = Thread(target=p.get_status)
+        #         if t.start() == "playing":
+        #             t = Thread(target=p.pause)
+        #             t.start()
+        #             continue
+        #         t = Thread(target=p.resume, args=(False,))
+        #         t.start()
+        #         t.join()
+        # except Exception as e:
+        #     raise e
+        # else:
+        #     pass
+        # finally:
+        #     pass
         if key == ord('q'):
-            """
-                - position cursor to len(win) - 1, 0
-                - show cursor
-                - accept input
-                - if 'q', quit
-            """
-            break
-
-        if key == ord('p'):
-            try:
-                if p.get_status() == "paused":
-                    p.resume(False)
-                    continue
-                p.stop()
-                p.pause()
-            except NameError:
-                pass
+            menu = prev
+            print_items(disp, menu, 0)
+        # if is_pressed('ctrl+q'):
+        #     t = Thread(target=p.stop())
+        #     t.start()
+        #     t.join()
 
 
 def main(stdscr):
@@ -123,7 +127,7 @@ def main(stdscr):
     curr_row = 0
     contents = getdir()
 
-    list_menu(disp, contents, curr_row)
+    nav_menu(disp, contents, curr_row)
 
     disp.refresh()
     disp.getkey()
