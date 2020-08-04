@@ -7,6 +7,7 @@ This project is a WIP. Currently, you can browse a directory once chossen, play 
 ~~Currently working on how to properly pause and resume.~~
 
 ~~Currently working on how to navigate while playing music~~
+
 Currently working on segmenting tui window into widgets
 
 Next is the seek bar, metadata view, curses window widgets.
