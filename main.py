@@ -1,36 +1,46 @@
 import os
-# from libs.playsound.playsound import playsound
+from libs.playsound.playsound import playsound
 from tkinter import filedialog
 from tkinter import *
-# from pathlib import Path
 import curses
 from curses import wrapper
-# import socket
-from threading import Thread
-# from keyboard import is_pressed
-# from queue import Queue
-from lumen import player
-# import daemon
+from keyboard import is_pressed
 
 # - ask for directory
 # - list songs in command window
 # - choose song
 # - give option for shuffle, repeat, etc
-
 musiclib = os.environ['USERPROFILE'] + '\\music'
 root = Tk()
 # song = playsound()
 
-def dirscanner(dirlist):
+
+def dirscanner(directory):
+    """
+        Scan a directory and return a list of files and
+        directories contained within.
+
+        directory: iterator of os.DirEntry objects
+    """
 
     filelist = []
-    with os.scandir(dirlist) as it:
+    with os.scandir(directory) as it:
         for item in it:
             filelist.append(item)
 
     return(filelist)
 
+
 def getdir(seek=0, wdir=musiclib):
+    """
+        Prompt to open a directory, scan it and return
+        a list of files and directories contained within.
+
+        If seek=1 then just scan a given directory (wdir)
+        and return files and directories within.
+
+        wdir: iterator of os.DirEntry objects
+    """
 
     if seek and wdir:
         root.items = dirscanner(wdir)
@@ -47,6 +57,13 @@ def getdir(seek=0, wdir=musiclib):
 
 
 def print_items(disp, menu, selected):
+    """
+        Prompt curses to print each entry in a given menu.
+
+        disp: curses window
+        menu: list of position: item pairs in a directory
+        selected: position of cursor
+    """
 
     disp.clear()
     disp.box()
@@ -61,8 +78,19 @@ def print_items(disp, menu, selected):
 
 
 def nav_menu(disp, menu, selected):
+    """
+        Logic and actions for directory items.
 
-    # p = playsound()
+        Handles selecting items and running them
+        (if they are audio files)
+        disp: curses window
+        menu: list of position: item pairs in a directory
+        selected: position of cursor
+
+    """
+
+    print_items(disp, menu, 0)
+    p = playsound()
 
     while True:
         key = disp.getch()
@@ -74,6 +102,7 @@ def nav_menu(disp, menu, selected):
         if key == curses.KEY_DOWN and selected < len(menu) - 1:
             selected += 1
             print_items(disp, menu, selected)
+
         if is_enter:
             if menu[selected].is_dir():
                 top_dir = os.path.dirname(menu[0])
@@ -84,34 +113,24 @@ def nav_menu(disp, menu, selected):
                 print_items(disp, menu, selected)
 
             elif menu[selected].is_file():
-                # q = Queue
-                p = player()
-                t = Thread(target=p.run, args=(menu[selected].path,))
-                t.start()
-                t.join()
-        # try:
-        #     if key == ord('p'):
-        #         t = Thread(target=p.get_status)
-        #         if t.start() == "playing":
-        #             t = Thread(target=p.pause)
-        #             t.start()
-        #             continue
-        #         t = Thread(target=p.resume, args=(False,))
-        #         t.start()
-        #         t.join()
-        # except Exception as e:
-        #     raise e
-        # else:
-        #     pass
-        # finally:
-        #     pass
+                p.play(menu[selected].path, False)
+
+        if key == ord('p'):
+            if p.get_status() == 'playing':
+                p.pause()
+            elif p.get_status() == 'paused':
+                p.resume(False)
+            else:
+                pass
+
+        if is_pressed('ctrl+q'):
+            if p.get_status() in ['playing', 'paused']:
+                p.stop()
+            break
+
         if key == ord('q'):
             menu = prev
             print_items(disp, menu, 0)
-        # if is_pressed('ctrl+q'):
-        #     t = Thread(target=p.stop())
-        #     t.start()
-        #     t.join()
 
 
 def main(stdscr):
@@ -129,8 +148,8 @@ def main(stdscr):
 
     nav_menu(disp, contents, curr_row)
 
-    disp.refresh()
-    disp.getkey()
+    # disp.refresh()
+    # disp.getkey()
 
 
 # print()
