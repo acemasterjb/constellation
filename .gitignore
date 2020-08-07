@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.dist-info
 
 # test files
 *.mp3
+test.py
+example.py
