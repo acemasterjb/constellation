@@ -123,6 +123,7 @@ class playsoundWin(playsoundBase):
             if self.mcierr_duplicate_alias not in str(e):
                 raise e
         if pos:
+            self.winCommand('set', self.alias, 'time format ms')
             self.winCommand('play', self.alias, pos)
         else:
             self.winCommand('play', self.alias)

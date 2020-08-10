@@ -6,8 +6,9 @@ import curses
 from curses import wrapper
 from keyboard import is_pressed
 from time import sleep
-import eyed3
+from libs.tinytag import TinyTag
 import libs.soundfile as sf
+# import threading
 
 # - ask for directory
 # - list songs in command window
@@ -59,10 +60,31 @@ def getdir(seek=0, wdir=musiclib):
     return(root.items)
 
 
-def is_audio(file):
-    if file.endswith(('.mp3',)):
-        return True
-    return False
+# def is_audio(file):
+#     if file.endswith(('.mp3', '.flac',)):
+#         return True
+#     return False
+
+
+# def print_seek(disp, menu, selected, player):
+#     song = menu[selected].path
+#     len_b = player.get_duration_of_audio()
+#     tag = TinyTag.get(song)
+#     y, x = disp.getmaxyx()
+
+#     while player.get_status() in ['playing', 'paused']:
+#         disp.clear()
+#         meta = tag.artist + ' - ' + tag.title
+
+#         disp.addstr(int(y * 0.11), 0, '>')
+#         disp.addstr(int(y * 0.11), 2, meta)
+#         disp.addstr(int(y * 0.11), int(x * 0.8),
+#                     player.get_position().decode() + '/' + len_b.decode())
+
+#         if player.get_status() != 'paused':
+#             disp.refresh()
+#         asyncio.sleep(0.99999)
+#     disp.clear()
 
 
 def print_data(disp, menu, selected):
@@ -70,13 +92,14 @@ def print_data(disp, menu, selected):
     file = menu[selected].path
 
     if menu[selected].is_file():
-        audio = eyed3.load(file)
+        audio = TinyTag.get(file)
+        # audio = eyed3.load(file)
         disp.clear()
         disp.box()
 
-        song_name = audio.tag.title
-        artist = audio.tag.artist
-        album = audio.tag.album
+        song_name = audio.title
+        artist = audio.artist
+        album = audio.album
 
         metadata = [song_name, artist, album]
 
@@ -84,9 +107,10 @@ def print_data(disp, menu, selected):
             disp.addstr(i, 1, metadata[i])
             disp.addstr('\n')
 
-        disp.refresh()
     else:
         disp.clear()
+
+    disp.refresh()
 
 
 def print_items(disp, menu, selected):
@@ -110,7 +134,7 @@ def print_items(disp, menu, selected):
     disp.refresh()
 
 
-def nav_menu(disp, meta, menu, selected):
+def nav_menu(disp, meta, seek, menu, selected):
     """
         Logic and actions for directory items.
 
@@ -160,9 +184,11 @@ def nav_menu(disp, meta, menu, selected):
                     del(data)
                     del(file_stream)
                     p.play("__play_temp.wav", False)
+                    # print_seek(seek, menu, selected, p)
                     continue
 
                 p.play(playing, False)
+                # print_seek(seek, menu, selected, p)
 
         if key == ord('p'):
             if p.get_status() == 'playing':
@@ -198,13 +224,14 @@ def main(stdscr):
     meta_panel = disp.subpad(int(y * 0.89), int(x * 0.19), 0, 0)
     files = disp.subpad(int(y * 0.89), int(x * 0.82), 0, int(x * 0.19))
     files.keypad(True)
+    seek = disp.subpad(int(y * 0.11), x, int(y * 0.9), 0)
     # seek = disp.subpad(int(y * 0.14), x, int(y * 0.89), 0)
     # cmd = curses.newwin(5, x, 0, 0)
 
     curr_row = 0
     contents = getdir()
 
-    nav_menu(files, meta_panel, contents, curr_row)
+    nav_menu(files, meta_panel, seek, contents, curr_row)
 
     # disp.refresh()
     # disp.getkey()

@@ -3,8 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.dist-info
+*.egg-info
 
 # test files
 *.mp3
-test.py
-example.py
+/test.py
+/example.py
+
+# returned files
+*.wav
