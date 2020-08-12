@@ -4,11 +4,14 @@ __pycache__/
 *$py.class
 *.dist-info
 *.egg-info
+dist
+build
 
 # test files
 *.mp3
-/test.py
-/example.py
+test.py
+example.py
+*.spec
 
 # returned files
 *.wav
