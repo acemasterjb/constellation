@@ -138,12 +138,12 @@ class Lumen():
                         del(file_stream)
                         self.p.play("__play_temp.wav", False)
                         # len_b = int(
-                            # self.p.get_duration_of_audio().decode()) // 60
+                        # self.p.get_duration_of_audio().decode()) // 60
 
                     else:
                         self.p.play(playing, False)
                         # len_b = int(
-                            # self.p.get_duration_of_audio().decode()) // 60
+                        # self.p.get_duration_of_audio().decode()) // 60
 
                     # seek_bar = Seek(self.p)
                     # seek_bar.run_seek(seek, menu, selected, len_b)
@@ -171,6 +171,9 @@ class Lumen():
                 menu = prev.pop()
                 self.print_items(disp, menu, 0)
             sleep(0.025)
+
+        if dir_exists("__play_temp.wav"):
+            i_del("__play_temp.wav")
 
     def run_player(self):
         self.nav_menu(self.disp, self.meta, self.seek,
