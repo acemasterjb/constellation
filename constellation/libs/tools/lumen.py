@@ -4,7 +4,7 @@ from keyboard import is_pressed
 from time import sleep
 from libs.tinytag import TinyTag
 import libs.soundfile as sf
-from .quark import getdir, dir_exists, i_del
+from .quark import *
 # from.seek import Seek
 # from threading import Timer
 
@@ -102,6 +102,7 @@ class Lumen():
 
         self.print_items(disp, menu, 0)
         prev = [menu]
+        playlist = []
 
         while self.__running:
             key = disp.getch()
@@ -138,17 +139,26 @@ class Lumen():
                         del(file_stream)
                         self.p.play("__play_temp.wav", False)
                         # len_b = int(
-                            # self.p.get_duration_of_audio().decode()) // 60
+                        # self.p.get_duration_of_audio().decode()) // 60
 
                     else:
                         self.p.play(playing, False)
                         # len_b = int(
-                            # self.p.get_duration_of_audio().decode()) // 60
+                        # self.p.get_duration_of_audio().decode()) // 60
 
                     # seek_bar = Seek(self.p)
                     # seek_bar.run_seek(seek, menu, selected, len_b)
                     # seek_bar.run_seek(seek, menu, selected, len_b)
                     # t.start()
+
+            if key == ord('s'):
+                metadata = TinyTag.get(menu[selected].path)
+
+                playlist = dirscanner(
+                    dirname(menu[selected].path), check_album, metadata.album)
+
+                for song in playlist:
+                    self.p.play(song)
 
             if key == ord('p'):
                 if self.p.get_status() == 'playing':
@@ -167,10 +177,17 @@ class Lumen():
                     self.terminate()
                 # break
 
+            if is_pressed('ctrl+s'):
+                self.p.stop()
+                self.p.close_alias()
+
             if key == ord('q'):
                 menu = prev.pop()
                 self.print_items(disp, menu, 0)
             sleep(0.025)
+
+        if dir_exists("__play_temp.wav"):
+            i_del("__play_temp.wav")
 
     def run_player(self):
         self.nav_menu(self.disp, self.meta, self.seek,

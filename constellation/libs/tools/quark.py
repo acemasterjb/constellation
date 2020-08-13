@@ -18,17 +18,36 @@ def dirname(directory):
     return os.path.dirname(directory)
 
 
-def dirscanner(directory):
+def check_album(item, criteria):
+    if item.album == criteria:
+        return True
+
+
+def check_artist(item, criteria):
+    if item.artist == criteria:
+        return True
+
+
+def dirscanner(directory, check=None, criteria=None):
     """
         Scan a directory and return a list of files and
         directories contained within.
 
         directory: iterator of os.DirEntry objects
+
+        check: function that checks if each item fits the criteria
+               default=None; simply scan and return files in directory
+
+        criteria: criteria to compare each item to if check param exists
     """
 
     filelist = []
     with os.scandir(directory) as it:
         for item in it:
+            if item.is_file():
+                if check and check(item, criteria):
+                    filelist.append(item)
+                    continue
             filelist.append(item)
 
     return(filelist)
