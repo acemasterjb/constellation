@@ -1,5 +1,5 @@
 # constellation
-~Minimalistic, lightweight MP3, WAVE and FLAC music player.~
+_Minimalistic, lightweight MP3, WAVE and FLAC music player._
 
 ---
 
@@ -8,10 +8,10 @@ This project is a TUI front end for this [playsound](https://github.com/Zehina/p
 FLAC files are converted to WAVE files via [simpleaudio](https://github.com/hamiltron/py-simple-audio) then playback is handled by playsound.
 
 ## dependencies
-[windows-curses](https://github.com/zephyrproject-rtos/windows-curses)
-[soundfile](https://github.com/bastibe/SoundFile)
-[tinytag](https://github.com/devsnd/tinytag)
-[keyboard](https://github.com/boppreh/keyboard)
+-[windows-curses](https://github.com/zephyrproject-rtos/windows-curses)-
+-[soundfile](https://github.com/bastibe/SoundFile)-
+-[tinytag](https://github.com/devsnd/tinytag)-
+-[keyboard](https://github.com/boppreh/keyboard)-
 
 After cloning this repo, you can use this install these dependencies with the requires.txt file
 
