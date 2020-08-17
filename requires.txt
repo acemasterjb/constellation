@@ -1,0 +1,5 @@
+soundfile
+playsound
+tinytag
+windows-curses
+keyboard
