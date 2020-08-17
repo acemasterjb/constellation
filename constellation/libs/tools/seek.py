@@ -1,6 +1,6 @@
 from time import time
 from threading import Timer
-from libs.tinytag import TinyTag
+from tinytag import TinyTag
 
 
 class Seek():
