@@ -2,9 +2,9 @@ from curses import color_pair, KEY_ENTER, KEY_UP, KEY_DOWN
 from libs.playsound.playsound import playsound
 from keyboard import is_pressed
 from time import sleep
-from libs.tinytag import TinyTag
-import libs.soundfile as sf
-from .quark import *
+from tinytag import TinyTag
+import soundfile as sf
+from .quark import getdir, dir_exists, i_del
 # from.seek import Seek
 # from threading import Timer
 
@@ -57,7 +57,7 @@ class Lumen():
             metadata = [song_name, artist, album]
 
             for i in range(len(metadata) - 1):
-                disp.addstr(i, 1, metadata[i])
+                disp.addstr(i + 4, 1, metadata[i])
                 disp.addstr('\n')
 
         else:
@@ -66,6 +66,9 @@ class Lumen():
         disp.refresh()
 
     def terminate(self):
+        """
+            Terminate thread / shut down application
+        """
         self.__running = False
 
     def print_items(self, disp, menu, selected):
@@ -102,7 +105,6 @@ class Lumen():
 
         self.print_items(disp, menu, 0)
         prev = [menu]
-        playlist = []
 
         while self.__running:
             key = disp.getch()
@@ -174,12 +176,18 @@ class Lumen():
                     self.p.close_alias()
                     if dir_exists("__play_temp.wav"):
                         i_del("__play_temp.wav")
-                    self.terminate()
+                self.terminate()
                 # break
 
             if is_pressed('ctrl+s'):
-                self.p.stop()
-                self.p.close_alias()
+                try:
+                    if self.p.get_status() in ['playing', 'paused']:
+                        self.p.stop()
+                        self.p.close_alias()
+                        if dir_exists("__play_temp.wav"):
+                            i_del("__play_temp.wav")
+                except Exception:
+                    pass
 
             if key == ord('q'):
                 menu = prev.pop()

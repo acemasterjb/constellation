@@ -1,11 +1,11 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
-include = ['constellation.libs.tools']
+include = ['constellation.libs.tools', 'constellation']
 requires = ['soundfile', 'playsound', 'tinytag',
-            'windows-curses']
+            'windows-curses', 'keyboard']
 
 setup(
     name='constellation',
     version='0.1.0',
-    packages=find_packages(include),
+    packages=include,
     install_requires=requires)
