@@ -4,7 +4,7 @@ from keyboard import is_pressed
 from time import sleep
 from tinytag import TinyTag
 import soundfile as sf
-from .quark import getdir, dir_exists, i_del
+from .quark import *
 # from.seek import Seek
 # from threading import Timer
 
@@ -31,11 +31,6 @@ class Lumen():
         self.seek = seek
         self.menu = menu
         self.selected = selected
-
-    def is_audio(self, file):
-        if file.endswith(('.mp3', '.flac',)):
-            return True
-        return False
 
     def print_data(self, disp, menu, selected):
         """
@@ -113,12 +108,12 @@ class Lumen():
             if key == KEY_UP and selected > 0:
                 selected -= 1
                 self.print_items(disp, menu, selected)
-                if self.is_audio(menu[selected].path):
+                if is_audio(menu[selected].path):
                     self.print_data(meta, menu, selected)
             if key == KEY_DOWN and selected < len(menu) - 1:
                 selected += 1
                 self.print_items(disp, menu, selected)
-                if self.is_audio(menu[selected].path):
+                if is_audio(menu[selected].path):
                     self.print_data(meta, menu, selected)
 
             if is_enter:
@@ -139,12 +134,12 @@ class Lumen():
                             sf.write("__play_temp.wav", data, file_stream)
                         del(data)
                         del(file_stream)
-                        self.p.play("__play_temp.wav", False)
+                        self.p.play(["__play_temp.wav"], False)
                         # len_b = int(
                         # self.p.get_duration_of_audio().decode()) // 60
 
                     else:
-                        self.p.play(playing, False)
+                        self.p.play([playing], False)
                         # len_b = int(
                         # self.p.get_duration_of_audio().decode()) // 60
 
@@ -155,12 +150,12 @@ class Lumen():
 
             if key == ord('s'):
                 metadata = TinyTag.get(menu[selected].path)
+                item = menu[selected].path
 
                 playlist = dirscanner(
-                    dirname(menu[selected].path), check_album, metadata.album)
+                    dirname(item), check_album, metadata.album)
 
-                for song in playlist:
-                    self.p.play(song)
+                self.p.play(playlist, False)
 
             if key == ord('p'):
                 if self.p.get_status() == 'playing':
@@ -191,7 +186,8 @@ class Lumen():
 
             if key == ord('q'):
                 menu = prev.pop()
-                self.print_items(disp, menu, 0)
+                selected = 0
+                self.print_items(disp, menu, selected)
             sleep(0.025)
 
         if dir_exists("__play_temp.wav"):

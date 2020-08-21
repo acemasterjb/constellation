@@ -1,4 +1,5 @@
 import os
+from tinytag import TinyTag
 from tkinter import filedialog
 from tkinter import *
 
@@ -10,6 +11,15 @@ def dir_exists(file):
     return os.path.exists(file)
 
 
+def is_audio(file):
+    try:
+        if file.endswith(('.mp3', '.flac',)):
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def i_del(item):
     os.remove(item)
 
@@ -18,8 +28,8 @@ def dirname(directory):
     return os.path.dirname(directory)
 
 
-def check_album(item, criteria):
-    if item.album == criteria:
+def check_album(tag, criteria):
+    if tag.album == criteria:
         return True
 
 
@@ -45,11 +55,12 @@ def dirscanner(directory, check=None, criteria=None):
     with os.scandir(directory) as it:
         for item in it:
             if item.is_file():
-                if check and check(item, criteria):
-                    filelist.append(item)
+                if is_audio(item):
+                    tag = TinyTag.get(item)
+                    if check and check(tag, criteria):
+                        filelist.append(item)
                     continue
             filelist.append(item)
-
     return(filelist)
 
 
