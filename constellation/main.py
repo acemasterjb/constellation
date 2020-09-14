@@ -24,10 +24,9 @@ def main(stdscr):
     # seek = disp.subpad(int(y * 0.14), x, int(y * 0.89), 0)
     # cmd = curses.newwin(5, x, 0, 0)
 
-    curr_row = 0
     contents = quark.getdir()
 
-    player = lumen.Lumen(files, meta_panel, seek, contents, curr_row)
+    player = lumen.Lumen(files, meta_panel, seek, contents)
     tui = threading.Thread(target=player.run_player())
 
     tui.start()
