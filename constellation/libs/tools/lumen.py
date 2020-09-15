@@ -30,6 +30,7 @@ class Lumen():
         self.menu = menu
         self.list = []
         self.selected = 0
+        self.dtype = [('track', 'i4'), ('song', 'U500')]
         self.temp = "__play_temp.wav"
         self.q = 0
 
@@ -84,6 +85,35 @@ class Lumen():
 
         disp.refresh()
 
+    def prev(self):
+        try:
+            if self.q > 0:
+                self.q -= 1
+                # self.nav_entry(1, self.q, len(self.menu))
+                self.play(self.list, self.q, self.meta, self.temp)
+        except Exception:
+            pass
+
+    def next(self):
+        try:
+            if self.q < len(self.list) - 1:
+                self.q += 1
+                # self.nav_entry(1, self.q, len(self.menu))
+                self.play(self.list, self.q, self.meta, self.temp)
+        except Exception:
+            print(Exception)
+
+    def stop(self):
+        try:
+            if self.p.get_status() in ['playing', 'paused']:
+                self.p.stop()
+                self.p.close_alias()
+                if dir_exists(self.temp):
+                    i_del(self.temp)
+        except Exception:
+            print("No song in queue to stop")
+            pass
+
     def play(self, menu, disp, temp=""):
         """
             Play the (self.q)th song from the given (menu).
@@ -118,7 +148,11 @@ class Lumen():
         self.is_playing = True
         self.print_side(disp, self.q)
 
-    def nav_menu(self, disp, meta, seek, menu):
+    def quit(self):
+        self.stop()
+        self.terminate()
+
+    def nav_menu(self, disp, seek, menu, prev, key):
         """
             Logic and actions for directory items.
 
@@ -128,106 +162,76 @@ class Lumen():
             menu: list of position: item pairs in a directory
 
         """
+        file = self.menu[self.selected]
+        is_enter = (key == 'enter')
 
-        self.print_items(disp, menu)
-        prev = [menu]
-        dtype = [('track', 'i4'), ('song', 'U500')]
+        if key == KEY_UP and self.selected > 0:
+            self.selected -= 1
+            # self.nav_entry(0, self.selected, len(menu))
+            self.print_items(disp, self.menu)
+        if key == KEY_DOWN and self.selected < len(self.menu) - 1:
+            self.selected += 1
+            # self.nav_entry(1, self.selected, len(self.menu))
+            self.print_items(disp, self.menu)
 
-        while self.__running:
-            file = menu[self.selected]
-            key = disp.getch()
-            is_enter = (key == KEY_ENTER or key in [10, 13])
-
-            if key == KEY_UP and self.selected > 0:
-                self.selected -= 1
-                # self.nav_entry(0, self.selected, len(menu))
-                self.print_items(disp, menu)
-            if key == KEY_DOWN and self.selected < len(menu) - 1:
-                self.selected += 1
-                # self.nav_entry(1, self.selected, len(menu))
-                self.print_items(disp, menu)
-
-            if is_enter:
-                if file.is_dir():
-                    prev.append(menu)
-                    sel_path = file.path
-                    menu = getdir(1, sel_path)
-                    self.selected = 0
-                    self.print_items(disp, menu)
-
-                elif file.is_file():
-                    playlist = [
-                        song.path for song in menu if self.is_audio(song.path)]
-                    idex = [(int(TinyTag.get(song).track) - 1) for song in playlist]
-                    self.list = np.array(zip(idex, playlist), dtype=dtype)
-                    self.list = np.sort(self.list, order='track')
-
-                    try:
-                        self.q = int(TinyTag.get(file.path).track) - 1
-                    except Exception:
-                        print("No ID3 found for {}".format(file.path))
-                        self.q = self.selected
-                    self.play(self.list, meta, self.temp)
-
-            if key == ord('s'):
-                metadata = TinyTag.get(menu[selected].path)
-                item = menu[selected].path
-
-                playlist = dirscanner(
-                    dirname(item), check_album, metadata.album)
-
-                self.p.play(playlist, False)
-
-            if key == ord('p'):
-                if self.p.get_status() == 'playing':
-                    self.p.pause()
-                elif self.p.get_status() == 'paused':
-                    self.p.resume(False)
-
-            if is_pressed('ctrl + comma'):
-                # ctrl + <, previous song
-                try:
-                    if self.q > 0:
-                        self.q -= 1
-                        # self.nav_entry(1, self.q, len(menu))
-                        self.play(self.list, self.q, meta, self.temp)
-                except Exception:
-                    pass
-
-            if is_pressed('ctrl + period'):
-                # ctrl + >, next song
-                try:
-                    if self.q < len(self.list) - 1:
-                        self.q += 1
-                        # self.nav_entry(1, self.q, len(menu))
-                        self.play(self.list, self.q, meta, self.temp)
-                except Exception:
-                    print(Exception)
-
-            if is_pressed('ctrl+q'):
-                if self.p.get_status() in ['playing', 'paused']:
-                    self.p.stop()
-                    self.p.close_alias()
-                    if dir_exists(self.temp):
-                        i_del(self.temp)
-                self.terminate()
-
-            if is_pressed('ctrl+s'):
-                try:
-                    if self.p.get_status() in ['playing', 'paused']:
-                        self.p.stop()
-                        self.p.close_alias()
-                        if dir_exists(self.temp):
-                            i_del(self.temp)
-                except Exception:
-                    print("No song in queue to stop")
-                    pass
-
-            if key == ord('q'):
-                menu = prev.pop()
+        if is_enter:
+            if file.is_dir():
+                prev.append(self.menu)
+                sel_path = file.path
+                self.menu = getdir(1, sel_path)
                 self.selected = 0
-                self.print_items(disp, menu)
-            sleep(0.025)
+                self.print_items(disp, self.menu)
+
+            elif file.is_file():
+                playlist = [
+                    song.path for song in self.menu if self.is_audio(song.path)]
+                idex = [(int(TinyTag.get(song).track) - 1)
+                         for song in playlist]
+                self.list = np.array(
+                    list(zip(idex, playlist)), dtype=self.dtype)
+                self.list = np.sort(self.list, order='track')
+
+                try:
+                    self.q = int(TinyTag.get(file.path).track) - 1
+                except Exception:
+                    print("No ID3 found for {}".format(file.path))
+                    self.q = self.selected
+                self.play(self.list, self.meta, self.temp)
+
+        # if key == ord('s'):
+        #     metadata = TinyTag.get(self.menu[self.selected].path)
+        #     item = self.menu[self.selected].path
+
+        #     playlist = dirscanner(
+        #         dirname(item), check_album, metadata.album)
+
+        #     self.p.play(playlist, False)
+
+        if key == ord('p'):
+            if self.p.get_status() == 'playing':
+                self.p.pause()
+            elif self.p.get_status() == 'paused':
+                self.p.resume(False)
+
+        # if key == 'ctrl + comma':
+        #     # ctrl + <, previous song
+        #     pass
+
+        # if key == 'ctrl + period':
+        #     # ctrl + >, next song
+        #     pass
+
+        # if key == 'ctrl + q':
+        #     pass
+
+        # if key == 'ctrl + s':
+        #     pass
+
+        if key == ord('q'):
+            self.menu = prev.pop()
+            self.selected = 0
+            self.print_items(disp, self.menu)
+        sleep(0.025)
 
         if dir_exists(self.temp):
             i_del(self.temp)
@@ -243,5 +247,25 @@ class Lumen():
             For thread compatibility, along with self.terminate()
         """
         while self.__running:
-            self.nav_menu(self.disp, self.meta, self.seek,
-                          self.menu)
+            self.print_items(self.disp, self.menu)
+            key = self.disp.getch()
+
+            if is_pressed('ctrl + comma'):
+                self.prev()
+                continue
+
+            if is_pressed('ctrl + period'):
+                self.next()
+                continue
+
+            if is_pressed('ctrl + q'):
+                self.quit()
+                continue
+
+            if is_pressed('ctrl + s'):
+                self.stop()
+                continue
+
+            prev = [self.menu]
+            self.nav_menu(self.disp, self.seek,
+                          self.menu, prev, key)

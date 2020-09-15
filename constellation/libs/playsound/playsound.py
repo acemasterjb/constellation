@@ -117,9 +117,7 @@ class playsoundWin(playsoundBase):
             self.alias = alias
         self.close_alias()
         try:
-            for song in sound:
-                # print(sound)
-                self.winCommand(f'open "{song.path}" alias', self.alias)
+            self.winCommand(f'open "{sound}" alias', self.alias)
         except PlaysoundException as e:
             # ignore duplicate alias
             if self.mcierr_duplicate_alias not in str(e):
