@@ -4,10 +4,8 @@ from keyboard import is_pressed
 from time import sleep
 from tinytag import TinyTag
 import soundfile as sf
+import numpy as np
 from .quark import getdir, dir_exists, i_del
-# from string import printable
-# from.seek import Seek
-# from threading import Timer
 
 
 class Lumen():
@@ -36,15 +34,13 @@ class Lumen():
         self.q = 0
 
     def is_audio(self, file):
-        if file.endswith(('.mp3', '.flac',)):
+        """
+            Currently supported file types:
+           '.mp3', '.flac' and '.wav'
+        """
+        if file.endswith(('.mp3', '.flac', '.wav',)):
             return True
         return False
-
-    # def nav_entry(self, direction, Q, n_items):
-    #     if direction and Q < n_items - 1:
-    #         Q += 1
-    #     elif not direction and Q > 0:
-    #         Q -= 1
 
     def print_side(self, disp, q=None):
         """
@@ -54,10 +50,10 @@ class Lumen():
         disp.clear()
 
         p_len = disp.getmaxyx()[1] - 1  # printable length in window
-        playlist = [TinyTag.get(song).title for song in self.list]
+        playlist = [TinyTag.get(song[1]).title for song in self.list]
 
         # album header
-        disp.addnstr(1, 1, TinyTag.get(self.list[0]).album, p_len)
+        disp.addnstr(1, 1, TinyTag.get(self.list[0][1]).album, p_len)
         disp.hline(2, 1, '-', p_len)  # h-line: -----------
         # songs in album
         for i in range(len(playlist)):
@@ -66,36 +62,6 @@ class Lumen():
             disp.addnstr(i + 3, 1, playlist[i], p_len)
             disp.attroff(color_pair(1))
             disp.addstr('\n')
-
-        # file = menu[self.selected].path
-
-        # if menu[self.selected].is_file():
-        #     audio = TinyTag.get(file)
-        #     # audio = eyed3.load(file)
-        #     disp.clear()
-        #     disp.box()
-
-        #     song_name = audio.title
-        #     artist = audio.artist
-        #     album = audio.album
-
-        #     metadata = [song_name, artist, album]
-        #     # j = 0
-
-        #     for i in range(len(metadata)):
-        #         # pos = 0
-        #         # j += 1
-        #         # for c in range(0, len(metadata[i])):
-        #         #     if pos < disp.getmaxyx()[1]:
-        #         #         disp.addch(j, pos, metadata[i][c])
-        #         #         pos += 1
-        #         #     else:
-        #         #         disp.addstr('\n')
-        #         #         j += 1
-        #         #         pos = 1
-        #         # disp.addstr('\n')
-        #         disp.addstr(i + 4, 1, metadata[i])
-        #         disp.addstr('\n')
 
         disp.refresh()
 
@@ -118,14 +84,15 @@ class Lumen():
 
         disp.refresh()
 
-    def play(self, menu, selected, disp, temp=""):
+    def play(self, menu, disp, temp=""):
         """
-            Play the (selected) song from the given (menu).
+            Play the (self.q)th song from the given (menu).
 
             If a (temp) file
             is given and exists then it will delete it before it
-            is used again for the next (selected) song.
+            is used again for the next (self.q)th song.
         """
+
         if temp and dir_exists(temp):
             if self.is_playing:
                 try:
@@ -135,10 +102,10 @@ class Lumen():
                     pass
             i_del(temp)
 
-        playing = menu[selected].path
+        song = menu[self.q][1]
 
-        if menu[selected].path.endswith(('.flac')):
-            with open(playing, 'rb') as f:
+        if song.endswith(('.flac')):
+            with open(song, 'rb') as f:
                 data, file_stream = sf.read(f)
                 sf.write(temp, data, file_stream)
             del(data)
@@ -146,7 +113,7 @@ class Lumen():
             self.p.play(temp, False)
 
         else:
-            self.p.play(playing, False)
+            self.p.play(song, False)
 
         self.is_playing = True
         self.print_side(disp, self.q)
@@ -164,8 +131,10 @@ class Lumen():
 
         self.print_items(disp, menu)
         prev = [menu]
+        dtype = [('track', 'i4'), ('song', 'U500')]
 
         while self.__running:
+            file = menu[self.selected]
             key = disp.getch()
             is_enter = (key == KEY_ENTER or key in [10, 13])
 
@@ -179,42 +148,50 @@ class Lumen():
                 self.print_items(disp, menu)
 
             if is_enter:
-                if menu[self.selected].is_dir():
+                if file.is_dir():
                     prev.append(menu)
-                    sel_path = menu[self.selected].path
+                    sel_path = file.path
                     menu = getdir(1, sel_path)
                     self.selected = 0
                     self.print_items(disp, menu)
 
-                elif menu[self.selected].is_file():
-                    self.q = self.selected
-                    self.list = [
+                elif file.is_file():
+                    playlist = [
                         song.path for song in menu if self.is_audio(song.path)]
-                    self.play(menu, self.q, meta, self.temp)
+                    idex = [(int(TinyTag.get(song).track) - 1) for song in playlist]
+                    self.list = np.array(zip(idex, playlist), dtype=dtype)
+                    self.list = np.sort(self.list, order='track')
+
+                    try:
+                        self.q = int(TinyTag.get(file.path).track) - 1
+                    except Exception:
+                        print("No ID3 found for {}".format(file.path))
+                        self.q = self.selected
+                    self.play(self.list, meta, self.temp)
 
             if key == ord('p'):
                 if self.p.get_status() == 'playing':
                     self.p.pause()
                 elif self.p.get_status() == 'paused':
                     self.p.resume(False)
-                else:
-                    pass
 
             if is_pressed('ctrl + comma'):
+                # ctrl + <, previous song
                 try:
                     if self.q > 0:
                         self.q -= 1
                         # self.nav_entry(1, self.q, len(menu))
-                        self.play(menu, self.q, meta, self.temp)
+                        self.play(self.list, self.q, meta, self.temp)
                 except Exception:
                     pass
 
             if is_pressed('ctrl + period'):
+                # ctrl + >, next song
                 try:
                     if self.q < len(self.list) - 1:
                         self.q += 1
                         # self.nav_entry(1, self.q, len(menu))
-                        self.play(menu, self.q, meta, self.temp)
+                        self.play(self.list, self.q, meta, self.temp)
                 except Exception:
                     print(Exception)
 
@@ -225,7 +202,6 @@ class Lumen():
                     if dir_exists(self.temp):
                         i_del(self.temp)
                 self.terminate()
-                # break
 
             if is_pressed('ctrl+s'):
                 try:
@@ -235,6 +211,7 @@ class Lumen():
                         if dir_exists(self.temp):
                             i_del(self.temp)
                 except Exception:
+                    print("No song in queue to stop")
                     pass
 
             if key == ord('q'):
@@ -253,6 +230,9 @@ class Lumen():
         self.__running = False
 
     def run_player(self):
-
-        self.nav_menu(self.disp, self.meta, self.seek,
-                      self.menu)
+        """
+            For thread compatibility, along with self.terminate()
+        """
+        while self.__running:
+            self.nav_menu(self.disp, self.meta, self.seek,
+                          self.menu)
