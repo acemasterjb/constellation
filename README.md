@@ -1,17 +1,27 @@
 # constellation
 _Minimalistic, lightweight MP3, WAVE and FLAC music player._
 
+![](res/demo.png)
+
 ---
 
-This project is a TUI front end for this [playsound](https://github.com/Zehina/playsound) fork.It is in alpha stages but you can try by installing the dependency, cloning the project and running the `main.py` python script.
+This project is a TUI front end for this [playsound](https://github.com/Zehina/playsound) fork.It is in beta stages but you can try by installing the dependency, cloning the project and running the `main.py` python script.
 
 FLAC files are converted to WAVE files via [simpleaudio](https://github.com/hamiltron/py-simple-audio) then playback is handled by playsound.
+
+## features
+* minimal, terminal-based design
+* supports FLAC, WAVE and MP3 files
+* file browser to navigate given directory
+* hotkeys to pause/play, stop, skip/prev song, etc.
+* currently only takes, at most, \~30MB of memory
 
 ## dependencies
 -[windows-curses](https://github.com/zephyrproject-rtos/windows-curses)-
 -[soundfile](https://github.com/bastibe/SoundFile)-
 -[tinytag](https://github.com/devsnd/tinytag)-
 -[keyboard](https://github.com/boppreh/keyboard)-
+-[numpy](https://github.com/numpy/numpy)-
 
 After cloning this repo, you can use this install these dependencies with the requires.txt file
 
@@ -35,7 +45,16 @@ Once you run `main.py` or the constellations.exe compilled from the above instru
 
 Choose you music folder with the `Enter` key. Go up a level with `q`.
 
-Press `Enter` to play a song, `p` to pause and resume playback and `ctrl+s` to stop and  `ctrl+q` to stop a song and exit the program.
+
+## hotkeys
+* Press `Enter` to play a song or enter a directory/folder
+* `p` to pause and resume playback 
+* `ctrl + s` to stop playback
+* `ctrl + q` to stop a song (if in queue) and exit the program
+* `ctrl + >` to skip song
+* `ctrl + <` to go to previous song
+
+> Note: all hotkeys can only be used while in window for now
 
 
 ## current state

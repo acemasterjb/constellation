@@ -3,3 +3,4 @@ playsound
 tinytag
 windows-curses
 keyboard
+numpy

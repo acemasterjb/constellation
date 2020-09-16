@@ -28,6 +28,7 @@ class Lumen():
         self.meta = meta
         self.seek = seek
         self.menu = menu
+        self.prev = [self.menu]
         self.list = []
         self.selected = 0
         self.dtype = [('track', 'i4'), ('song', 'U500')]
@@ -66,31 +67,32 @@ class Lumen():
 
         disp.refresh()
 
-    def print_items(self, disp, menu):
+    def print_items(self):
         """
             Prompt curses to print each entry in a given menu.
 
-            disp: curses window
-            menu: list of position: item pairs in a directory
+            self.disp: curses window
+            self.menu: list of position: item pairs in a directory
         """
 
-        disp.clear()
-        disp.box()
+        self.disp.clear()
+        self.disp.box()
 
-        for i, item in enumerate(menu):
+        for i, item in enumerate(self.menu):
             if i == self.selected:
-                disp.attron(color_pair(1))
-            disp.addstr(i + 1, 1, item.name)
-            disp.attroff(color_pair(1))
+                self.disp.attron(color_pair(1))
+            self.disp.addstr(i + 1, 1, item.name)
+            self.disp.attroff(color_pair(1))
 
-        disp.refresh()
+        self.disp.refresh()
 
     def prev(self):
         try:
             if self.q > 0:
                 self.q -= 1
                 # self.nav_entry(1, self.q, len(self.menu))
-                self.play(self.list, self.q, self.meta, self.temp)
+                self.play(self.list, self.meta, self.temp)
+                self.print_items(self.disp, self.menu)
         except Exception:
             pass
 
@@ -99,7 +101,8 @@ class Lumen():
             if self.q < len(self.list) - 1:
                 self.q += 1
                 # self.nav_entry(1, self.q, len(self.menu))
-                self.play(self.list, self.q, self.meta, self.temp)
+                self.play(self.list, self.meta, self.temp)
+                self.print_items(self.disp, self.menu)
         except Exception:
             print(Exception)
 
@@ -110,6 +113,7 @@ class Lumen():
                 self.p.close_alias()
                 if dir_exists(self.temp):
                     i_del(self.temp)
+                self.print_items(self.disp, self.menu)
         except Exception:
             print("No song in queue to stop")
             pass
@@ -152,7 +156,7 @@ class Lumen():
         self.stop()
         self.terminate()
 
-    def nav_menu(self, disp, seek, menu, prev, key):
+    def nav_menu(self, disp, seek, menu, key):
         """
             Logic and actions for directory items.
 
@@ -163,7 +167,7 @@ class Lumen():
 
         """
         file = self.menu[self.selected]
-        is_enter = (key == 'enter')
+        is_enter = (key == KEY_ENTER or key in [10, 13])
 
         if key == KEY_UP and self.selected > 0:
             self.selected -= 1
@@ -176,7 +180,7 @@ class Lumen():
 
         if is_enter:
             if file.is_dir():
-                prev.append(self.menu)
+                self.prev.append(self.menu)
                 sel_path = file.path
                 self.menu = getdir(1, sel_path)
                 self.selected = 0
@@ -213,28 +217,12 @@ class Lumen():
             elif self.p.get_status() == 'paused':
                 self.p.resume(False)
 
-        # if key == 'ctrl + comma':
-        #     # ctrl + <, previous song
-        #     pass
-
-        # if key == 'ctrl + period':
-        #     # ctrl + >, next song
-        #     pass
-
-        # if key == 'ctrl + q':
-        #     pass
-
-        # if key == 'ctrl + s':
-        #     pass
-
         if key == ord('q'):
-            self.menu = prev.pop()
+            self.menu = self.prev.pop()
             self.selected = 0
             self.print_items(disp, self.menu)
+        self.print_items(self.disp, self.menu)
         sleep(0.025)
-
-        if dir_exists(self.temp):
-            i_del(self.temp)
 
     def terminate(self):
         """
@@ -246,10 +234,9 @@ class Lumen():
         """
             For thread compatibility, along with self.terminate()
         """
+        self.print_items(self.disp, self.menu)
         while self.__running:
-            self.print_items(self.disp, self.menu)
             key = self.disp.getch()
-
             if is_pressed('ctrl + comma'):
                 self.prev()
                 continue
@@ -266,6 +253,8 @@ class Lumen():
                 self.stop()
                 continue
 
-            prev = [self.menu]
             self.nav_menu(self.disp, self.seek,
-                          self.menu, prev, key)
+                          self.menu, key)
+
+        if dir_exists(self.temp):
+            i_del(self.temp)
