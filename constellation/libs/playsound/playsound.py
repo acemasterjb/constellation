@@ -1,4 +1,4 @@
-import sys
+# import sys
 from platform import system
 from abc import ABC, abstractmethod
 
@@ -6,7 +6,7 @@ operating_system = system()
 
 if operating_system == 'Windows':
     from ctypes import c_buffer, windll
-    from random import random
+    # from random import random
     from time import sleep, time
     from sys import getfilesystemencoding
 elif operating_system == 'Darwin':
@@ -60,14 +60,13 @@ class playsoundWin(playsoundBase):
         self.alias = f'playsound_alias_{id(self)}'
         self.stop_sound = False
         self.pause_sound = False
-
     def close_alias(self):
         """
         For cleanup purpose : will try to close an existing alias.
         """
         try:
             self.winCommand('close', self.alias)
-        except:
+        except Exception:
             pass
 
     def stop_audio(self):
@@ -105,7 +104,7 @@ class playsoundWin(playsoundBase):
     def _manage_block(self):
         self.stop_sound = False
         self.pause_audio = False
-        start_time = time()
+        # start_time = time()
         while True:
             sleep(0.1)
             status = self.get_status()
@@ -123,7 +122,6 @@ class playsoundWin(playsoundBase):
             if self.mcierr_duplicate_alias not in str(e):
                 raise e
         if pos:
-            self.winCommand('set', self.alias, 'time format ms')
             self.winCommand('play', self.alias, pos)
         else:
             self.winCommand('play', self.alias)

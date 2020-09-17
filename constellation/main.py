@@ -19,6 +19,7 @@ def main(stdscr):
     disp = curses.newwin(y, x, 0, 0)
     meta_panel = disp.subpad(int(y * 0.89), int(x * 0.19), 0, 0)
     files = disp.subpad(int(y * 0.89), int(x * 0.82), 0, int(x * 0.19))
+    files.nodelay(True)
     files.keypad(True)
     seek = disp.subpad(int(y * 0.11), x, int(y * 0.9), 0)
     # seek = disp.subpad(int(y * 0.14), x, int(y * 0.89), 0)
@@ -28,12 +29,7 @@ def main(stdscr):
 
     player = lumen.Lumen(files, meta_panel, seek, contents)
     tui = threading.Thread(target=player.run_player())
-
     tui.start()
 
-    # disp.refresh()
-    # disp.getkey()
 
-
-# print()
 wrapper(main)

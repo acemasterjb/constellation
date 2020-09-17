@@ -48,6 +48,7 @@ Choose you music folder with the `Enter` key. Go up a level with `q`.
 
 ## hotkeys
 * Press `Enter` to play a song or enter a directory/folder
+* `q` go up a directory
 * `p` to pause and resume playback 
 * `ctrl + s` to stop playback
 * `ctrl + q` to stop a song (if in queue) and exit the program
@@ -68,10 +69,13 @@ This project is a WIP. Currently, you can browse a directory once chossen, play 
 
 ~~Packaging for executable~~ (instructions given)
 
-Currently working on seeking.
+~~Currently working on seeking.~~
+
+Currently woriking on playlist/queuing
 
 # Mission
 - To create a lightweight music play that can be ran in the terminal/cmd window
 - To provide support for a variety of containers
 - To provide a seamless TUI music player experience
-- Cross-platform support
+- To provice cross-platform support
+- **To make a simple music player that anyone can use**

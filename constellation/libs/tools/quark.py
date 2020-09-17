@@ -1,10 +1,20 @@
 import os
+from numpy import array
 from tinytag import TinyTag
 from tkinter import filedialog
 from tkinter import *
 
 musiclib = os.environ['USERPROFILE'] + '\\music'
 root = Tk()
+
+
+def b_to_i(in_bytes):
+    """
+        converts bytes to int then returns a time string:
+        mm:ss
+    """
+    return("{:02}:{:02}".format(
+        int(in_bytes / 6e4 % 60), int(in_bytes / 1e3 % 60)))
 
 
 def dir_exists(file):
@@ -28,13 +38,19 @@ def dirname(directory):
     return os.path.dirname(directory)
 
 
-def check_album(tag, criteria):
-    if tag.album == criteria:
+def check_album(song, key):
+    """
+        Checks if the song's album matches the given key
+    """
+    if song.album == key:
         return True
 
 
-def check_artist(item, criteria):
-    if item.artist == criteria:
+def check_artist(song, key):
+    """
+        Checks if the song's artist matches the given key
+    """
+    if song.artist == key:
         return True
 
 
@@ -51,17 +67,25 @@ def dirscanner(directory, check=None, criteria=None):
         criteria: criteria to compare each item to if check param exists
     """
 
-    filelist = []
     with os.scandir(directory) as it:
+        itemlist = []
         for item in it:
-            if item.is_file():
+            if item.is_file() and check:
                 if is_audio(item):
                     tag = TinyTag.get(item)
-                    if check and check(tag, criteria):
-                        filelist.append(item)
+                    if check(tag, criteria):
+                        itemlist.append(item)
                     continue
-            filelist.append(item)
+            itemlist.append(item)
+        filelist = array(itemlist)
     return(filelist)
+
+
+def getpardir(currdir):
+    """
+        returns a <str> of the parent directory's path
+    """
+    return(os.path.abspath(os.path.join(currdir, os.pardir)))
 
 
 def getdir(seek=0, wdir=musiclib):
