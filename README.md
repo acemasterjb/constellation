@@ -71,7 +71,7 @@ This project is a WIP. Currently, you can browse a directory once chossen, play 
 
 ~~Currently working on seeking.~~
 
-Currently woriking on playlist/queuing
+Currently working on playlist/queuing
 
 # Mission
 - To create a lightweight music play that can be ran in the terminal/cmd window
