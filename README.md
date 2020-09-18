@@ -60,7 +60,7 @@ Choose you music folder with the `Enter` key. Go up a level with `q`.
 
 
 ## current state
-This project is a WIP. [The features list](/#features) will be updated when each of these are crossed out.
+This project is a WIP. [The features list](#features) will be updated when each of these are crossed out.
 
 ~~Currently working on how to properly pause and resume.~~
 
