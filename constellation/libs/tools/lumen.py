@@ -3,7 +3,6 @@ from libs.playsound.playsound import playsound
 from keyboard import is_pressed
 from time import sleep
 from tinytag import TinyTag
-from sys import byteorder
 import soundfile as sf
 import numpy as np
 from .quark import getdir, dir_exists, i_del, getpardir, b_to_i
@@ -254,6 +253,12 @@ class Lumen():
         while self.__running:
             try:
                 self.print_seek(self.s_len)
+                if self.list is not None:
+                    if self.p.get_status() == "stopped":
+                        self.next()
+                    if self.list[-1] == self.list[self.q]:
+                        # if this is the last song in playlist
+                        self.list = np.array([])  # empty playlist
             except Exception:
                 self.seek.clear()
                 x_pos = self.seek.getmaxyx()[1] - len(self.time)

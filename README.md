@@ -15,6 +15,7 @@ FLAC files are converted to WAVE files via [simpleaudio](https://github.com/hami
 * file browser to navigate given directory
 * hotkeys to pause/play, stop, skip/prev song, etc.
 * currently only takes, at most, \~30MB of memory
+* playlist support
 
 ## dependencies
 -[windows-curses](https://github.com/zephyrproject-rtos/windows-curses)-
@@ -59,7 +60,7 @@ Choose you music folder with the `Enter` key. Go up a level with `q`.
 
 
 ## current state
-This project is a WIP. Currently, you can browse a directory once chossen, play and pause a song, and stop it.
+This project is a WIP. [The features list](/#features) will be updated when each of these are crossed out.
 
 ~~Currently working on how to properly pause and resume.~~
 
@@ -71,7 +72,9 @@ This project is a WIP. Currently, you can browse a directory once chossen, play 
 
 ~~Currently working on seeking.~~
 
-Currently working on playlist/queuing
+~~Currently working on playlist/queuing~~
+
+Currently working on Gapless Playback
 
 # Mission
 - To create a lightweight music play that can be ran in the terminal/cmd window
