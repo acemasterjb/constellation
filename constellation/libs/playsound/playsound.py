@@ -7,7 +7,7 @@ operating_system = system()
 if operating_system == 'Windows':
     from ctypes import c_buffer, windll
     # from random import random
-    from time import sleep, time
+    from time import sleep
     from sys import getfilesystemencoding
 elif operating_system == 'Darwin':
     from AppKit import NSSound
