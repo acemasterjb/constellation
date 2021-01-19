@@ -1,7 +1,7 @@
 import curses
 from curses import wrapper
 import threading
-from libs.tools.quark import getdir
+from libs.tools import quark
 from libs.tools import lumen
 
 # - ask for directory
@@ -25,7 +25,7 @@ def main(stdscr):
     # seek = disp.subpad(int(y * 0.14), x, int(y * 0.89), 0)
     # cmd = curses.newwin(5, x, 0, 0)
 
-    contents = getdir()
+    contents = quark.getdir()
 
     player = lumen.Lumen(files, meta_panel, seek, contents)
     tui = threading.Thread(target=player.run_player())

@@ -1,12 +1,11 @@
 import os
-from platform import system
 from numpy import array
 from tinytag import TinyTag
-from pathlib import Path
-
-operating_sys = system()
+from tkinter import filedialog
+from tkinter import *
 
 musiclib = os.environ['USERPROFILE'] + '\\music'
+root = Tk()
 
 
 def b_to_i(in_bytes):
@@ -77,12 +76,7 @@ def dirscanner(directory, check=None, criteria=None):
                     if check(tag, criteria):
                         itemlist.append(item)
                     continue
-
-            if not item.name.startswith('.') and os.path.isdir(item.path):
-                print(item.name)
-                itemlist.append(item)
-            elif is_audio(item):
-                itemlist.append(item)
+            itemlist.append(item)
         filelist = array(itemlist)
     return(filelist)
 
@@ -106,11 +100,15 @@ def getdir(seek=0, wdir=musiclib):
     """
 
     if seek and wdir:
-        items = dirscanner(wdir)
+        root.items = dirscanner(wdir)
     else:
-        user = Path.home()
-        items = dirscanner(user)
+        wtitle = 'Choose music library'
+        root.directory = filedialog.askdirectory(
+            initialdir=wdir, title=wtitle)
+        root.update()
 
-        # print(items)
+        root.items = dirscanner(root.directory)
 
-    return(items)
+        root.destroy()
+
+    return(root.items)
