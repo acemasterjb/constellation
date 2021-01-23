@@ -6,6 +6,7 @@ from tinytag import TinyTag
 import soundfile as sf
 import numpy as np
 from .quark import getdir, dir_exists, i_del, getpardir, b_to_i
+from .DirectoryList import DirectoryList, enum
 
 
 class Lumen():
@@ -27,8 +28,8 @@ class Lumen():
         self.disp = disp
         self.meta = meta
         self.seek = seek
-        self.menu = np.array(menu)  # list of items in current dir
-        self.prev = np.array([])  # list of paths of previous menus
+        self.menu = menu  # list of items in current dir
+        self.prev = DirectoryList()  # list of paths of previous menus
         self.list = np.array([])  # playlist/queue
         self.selected = 0  # selected item in menu
         # dtype: 2D numpy array data types; integer and string
@@ -48,10 +49,17 @@ class Lumen():
         return False
 
     def back(self):
-        level_1, self.prev = self.prev[-1], self.prev[:-1]
-        self.menu = getdir(1, level_1)
+        self.menu = getdir(1, self.prev.pop().value)
         self.selected = 0
         self.print_items()
+
+    def get_list(self):
+        playlist = []
+        for node in self.menu:
+            if node is not None:
+                if self.is_audio(node.value.path):
+                    playlist.append(node.value.path)
+        return playlist
 
     def print_seek(self, total_len):
         """
@@ -101,10 +109,15 @@ class Lumen():
         self.disp.clear()
         self.disp.box()
 
-        for i, item in enumerate(self.menu):
+        for i, item in enumerate(self.menu[:-1]):
             if i == self.selected:
                 self.disp.attron(color_pair(1))
-            self.disp.addstr(i + 1, 1, item.name)
+            if not item:
+                continue
+            try:
+                self.disp.addstr(i + 1, 1, item.name)
+            except Exception:
+                pass
             self.disp.attroff(color_pair(1))
 
         self.disp.refresh()
@@ -211,18 +224,16 @@ class Lumen():
             self.print_items()
 
         if enter_pressed:
-            if file.is_dir():
+            if file.value.is_dir():
                 """ if this is a directory/folder, open it """
-                self.prev = np.append(  # get parent directory and add to tree
-                    self.prev, [getpardir(self.menu[0].path)])
-                sel_path = file.path  # path of selected folder
+                self.prev.append(getpardir(file.value))
+                sel_path = file.value.path  # path of selected folder
                 self.menu = getdir(seek=1, wdir=sel_path)
                 self.selected = 0
                 self.print_items()
 
-            elif file.is_file():
-                playlist = [
-                    song.path for song in self.menu if self.is_audio(song.path)]
+            elif file.value.is_file():
+                playlist = self.get_list()
                 idex = [(int(TinyTag.get(song).track) - 1)  # track number
                         for song in playlist]
                 self.list = np.array(  # make a numbered track list
@@ -232,9 +243,9 @@ class Lumen():
 
                 try:
                     """ try to get the song's tag, els """
-                    self.q = int(TinyTag.get(file.path).track) - 1
+                    self.q = int(TinyTag.get(file.value.path).track) - 1
                 except Exception:
-                    print("No ID3 found for {}".format(file.path))
+                    print("No ID3 found for {}".format(file.value.path))
                     self.q = self.selected
                 self.play(self.temp)
 

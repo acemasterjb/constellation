@@ -1,8 +1,8 @@
 import os
-from numpy import array
-from tinytag import TinyTag
+
 from tkinter import filedialog
 from tkinter import *
+from .DirectoryList import DirectoryList
 
 musiclib = os.environ['USERPROFILE'] + '\\music'
 root = Tk()
@@ -54,31 +54,28 @@ def check_artist(song, key):
         return True
 
 
-def dirscanner(directory, check=None, criteria=None):
+def dirscanner(directory, llist):
     """
         Scan a directory and return a list of files and
         directories contained within.
 
         directory: iterator of os.DirEntry objects
 
-        check: function that checks if each item fits the criteria
-               default=None; simply scan and return files in directory
-
-        criteria: criteria to compare each item to if check param exists
+        node: LinkedList node which every element in directory will be
+              will be appended to. If the element is a folder, dirscanner
+              will be called recursively to append its contents relative
+              to the folder.
     """
 
-    with os.scandir(directory) as it:
-        itemlist = []
-        for item in it:
-            if item.is_file() and check:
-                if is_audio(item):
-                    tag = TinyTag.get(item)
-                    if check(tag, criteria):
-                        itemlist.append(item)
-                    continue
-            itemlist.append(item)
-        filelist = array(itemlist)
-    return(filelist)
+    with os.scandir(directory) as folder:
+        for element in folder:
+            llist.append(element)
+            if element.is_dir():
+                folder_elem = llist[-1]
+                nlist = DirectoryList()  # new linked list for folder contents
+                folder_elem.down[0] = nlist.head
+                folder_elem.up[0] = llist.head  # parent folder
+                dirscanner(element, nlist)
 
 
 def getpardir(currdir):
@@ -99,16 +96,18 @@ def getdir(seek=0, wdir=musiclib):
         wdir: iterator of os.DirEntry objects
     """
 
+    llist = DirectoryList()
+
     if seek and wdir:
-        root.items = dirscanner(wdir)
+        root.items = dirscanner(wdir, llist)
     else:
         wtitle = 'Choose music library'
         root.directory = filedialog.askdirectory(
             initialdir=wdir, title=wtitle)
         root.update()
 
-        root.items = dirscanner(root.directory)
+        root.items = dirscanner(root.directory, llist)
 
         root.destroy()
 
-    return(root.items)
+    return(llist)
