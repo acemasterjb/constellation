@@ -41,6 +41,8 @@ class Lumen():
 
     def is_audio(self, file):
         """
+            Check if `file`  is an audio file
+
             Currently supported file types:
            '.mp3', '.flac' and '.wav'
         """
@@ -49,11 +51,20 @@ class Lumen():
         return False
 
     def back(self):
+        """ go back one level of the directory """
         self.menu = getdir(1, self.prev.pop().value)
         self.selected = 0
         self.print_items()
 
     def get_list(self):
+        """
+            Get a playlist of songs from the current directory
+
+            Uses lumen.menu to get files, if they are audio files,
+            they are added to the playlist.
+
+            returns a list
+        """
         playlist = []
         for node in self.menu:
             if node is not None:
@@ -89,10 +100,12 @@ class Lumen():
 
         # header: artist - album
         self.meta.addnstr(1, 1, "{0} - {1}".format(artist, album), p_len)
-        self.meta.hline(2, 1, '-', p_len)  # h-line: -----------
-        # songs in album
+        self.meta.hline(2, 1, '-', p_len)  # horizontal line: -----------
+
+        # body: songs in album
         for i in range(len(playlist)):
             if i == self.q:
+                """ highlight the currently playing song """
                 self.meta.attron(color_pair(1))
             self.meta.addnstr(i + 3, 1, playlist[i], p_len)
             self.meta.attroff(color_pair(1))
@@ -111,12 +124,16 @@ class Lumen():
 
         for i, item in enumerate(self.menu[:-1]):
             if i == self.selected:
+                """ highlight the selection on the main panel """
                 self.disp.attron(color_pair(1))
             if not item:
+                """ if there are no items, or if the current node
+                    is NoneType, then simply continue to the next item """
                 continue
             try:
                 self.disp.addstr(i + 1, 1, item.name)
             except Exception:
+                """ used to handle rare, unknown exception """
                 pass
             self.disp.attroff(color_pair(1))
 
@@ -155,6 +172,9 @@ class Lumen():
                 self.p.stop()
                 self.p.close_alias()
                 if dir_exists(self.temp):
+                    """ used to handle FLACs that have been converted to
+                    WAVs; they are stored in a temp file and need to be
+                    deleted once its use is done. """
                     i_del(self.temp)
                 self.print_items()
         except Exception:
