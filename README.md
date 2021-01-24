@@ -74,6 +74,8 @@ This project is a WIP. [The features list](#features) will be updated when each 
 
 ~~Currently working on playlist/queuing~~
 
+Omni-directory: user chooses parent directory and Const shows a single view of all songs in directory tree
+
 Currently working on Gapless Playback
 
 # Mission
