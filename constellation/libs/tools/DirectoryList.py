@@ -126,13 +126,3 @@ class DirectoryList:
 
 
 """ Tools """
-
-
-def enum(linkedlist, start=0):
-    i = start
-    node = linkedlist.head
-
-    while node.next[0]:
-        yield i, node.value
-        i += 1
-        node = node.next[0]
