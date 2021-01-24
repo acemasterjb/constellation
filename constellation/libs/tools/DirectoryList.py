@@ -98,11 +98,17 @@ class DirectoryList:
         prev = [None]
         i = 0
 
+        if index < 0:
+            if abs(index) > self.s:
+                raise IndexError
+                return
+            else:
+                index = self.s + index
+
         if index == 0:
             node[0] = self.head.next[0]
             del self.head
             self.head = node[0]
-
         else:
             while node[0] and i != index:
                 prev[0] = node[0]

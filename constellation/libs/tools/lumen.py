@@ -6,7 +6,7 @@ from tinytag import TinyTag
 import soundfile as sf
 import numpy as np
 from .quark import getdir, dir_exists, i_del, getpardir, b_to_i
-from .DirectoryList import DirectoryList, enum
+from .DirectoryList import DirectoryList
 
 
 class Lumen():
