@@ -50,8 +50,8 @@ class Lumen():
             return True
         return False
 
-    def up(self):
-        """ go up one level of the directory """
+    def back(self):
+        """ go back one level of the directory """
         self.menu = getdir(1, self.prev.pop().value)
         self.selected = 0
         self.print_items()
@@ -122,7 +122,7 @@ class Lumen():
         self.disp.clear()
         self.disp.box()
 
-        for i, item in enumerate(self.menu):
+        for i, item in enumerate(self.menu[:-1]):
             if i == self.selected:
                 """ highlight the selection on the main panel """
                 self.disp.attron(color_pair(1))
@@ -134,7 +134,7 @@ class Lumen():
                 self.disp.addstr(i + 1, 1, item.name)
             except Exception:
                 """ used to handle rare, unknown exception """
-                continue
+                pass
             self.disp.attroff(color_pair(1))
 
         self.disp.refresh()
@@ -276,7 +276,7 @@ class Lumen():
                 self.p.resume(False)
 
         if key == ord('q'):
-            self.up()
+            self.back()
 
         self.print_items()
         sleep(0.025)
@@ -326,7 +326,7 @@ class Lumen():
                 continue
 
             # if is_pressed('alt + left'):
-            #     self.up()
+            #     self.back()
                 # continue
 
             self.nav_menu(key)
