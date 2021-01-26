@@ -7,6 +7,7 @@ import soundfile as sf
 import numpy as np
 from .quark import getdir, dir_exists, i_del, getpardir, b_to_i
 from .DirectoryList import DirectoryList
+from math import floor
 
 
 class Lumen():
@@ -20,20 +21,27 @@ class Lumen():
            terminate: emergency thread terminate function
            print_items: print/draw items on curses widget/window
         """
-        self.p = playsound()
+        self.p = playsound()  # see playsound documentation
 
+        """ flags """
         self.is_playing = False
         self.__running = True
 
+        """ Curses Windows
+            self.disp - Main window. Displays files and directories
+            self.meta - (Left) Sidebar. Displays the current song's artist,
+                        album, current playlist
+            self.seek - Seek bar. Displays seek time and total song time.
+        """
         self.disp = disp
         self.meta = meta
         self.seek = seek
+
+        """ misc attributes """
         self.menu = menu  # list of items in current dir
         self.prev = DirectoryList()  # list of paths of previous menus
         self.list = np.array([])  # playlist/queue
         self.selected = 0  # selected item in menu
-        # dtype: 2D numpy array data types; integer and string
-        self.dtype = [('track', 'i4'), ('song', 'U500')]
         self.temp = "__play_temp.wav"
         self.q = 0  # queue index
         self.time = b_to_i(0)
@@ -54,7 +62,7 @@ class Lumen():
         """ go back one level of the directory """
         self.menu = getdir(1, self.prev.pop().value)
         self.selected = 0
-        self.print_items()
+        self.print_items(self.menu)
 
     def get_list(self):
         """
@@ -113,17 +121,19 @@ class Lumen():
 
         self.meta.refresh()
 
-    def print_items(self):
+    def print_items(self, menu, sel=None):
         """
             Prompt curses to print each entry in a given menu
             on the main panel.
         """
+        if not sel:
+            sel = self.selected
 
         self.disp.clear()
         self.disp.box()
 
-        for i, item in enumerate(self.menu[:-1]):
-            if i == self.selected:
+        for i, item in enumerate(menu):
+            if i == sel:
                 """ highlight the selection on the main panel """
                 self.disp.attron(color_pair(1))
             if not item:
@@ -147,7 +157,7 @@ class Lumen():
             if self.q > 0:
                 self.q -= 1
                 self.play(self.temp)
-                self.print_items()
+                self.print_items(self.menu)
         except Exception:
             print(Exception)
 
@@ -159,7 +169,7 @@ class Lumen():
             if self.q < len(self.list) - 1:
                 self.q += 1
                 self.play(self.temp)
-                self.print_items()
+                self.print_items(self.menu)
         except Exception:
             print(Exception)
 
@@ -176,7 +186,7 @@ class Lumen():
                     WAVs; they are stored in a temp file and need to be
                     deleted once its use is done. """
                     i_del(self.temp)
-                self.print_items()
+                self.print_items(self.menu)
         except Exception:
             print("No song in queue to stop")
             pass
@@ -238,10 +248,19 @@ class Lumen():
 
         if key == KEY_UP and self.selected > 0:
             self.selected -= 1
-            self.print_items()
         if key == KEY_DOWN and self.selected < len(self.menu) - 1:
             self.selected += 1
-            self.print_items()
+
+        y_len = self.disp.getmaxyx()[0]
+        start = floor(self.selected / (y_len - 2)) * (y_len - 2)
+        end = None
+        if start > 0:
+            selected = self.selected % (y_len - 2)
+        else:
+            selected = self.selected
+            end = y_len - 2
+        menu = self.menu[start:end]
+        self.print_items(menu, selected)
 
         if enter_pressed:
             if file.value.is_dir():
@@ -250,14 +269,16 @@ class Lumen():
                 sel_path = file.value.path  # path of selected folder
                 self.menu = getdir(seek=1, wdir=sel_path)
                 self.selected = 0
-                self.print_items()
+                self.print_items(self.menu)
 
             elif file.value.is_file():
                 playlist = self.get_list()
                 idex = [(int(TinyTag.get(song).track) - 1)  # track number
                         for song in playlist]
+                # dtype: 2D numpy array data types; integer and string
+                dtype = [('track', 'i4'), ('song', 'U500')]
                 self.list = np.array(  # make a numbered track list
-                    list(zip(idex, playlist)), dtype=self.dtype)
+                    list(zip(idex, playlist)), dtype=dtype)
                 # sort this track list
                 self.list = np.sort(self.list, order='track')
 
@@ -278,7 +299,6 @@ class Lumen():
         if key == ord('q'):
             self.back()
 
-        self.print_items()
         sleep(0.025)
 
     def terminate(self):
@@ -291,7 +311,7 @@ class Lumen():
         """
             For thread compatibility, along with self.terminate()
         """
-        self.print_items()
+        self.print_items(self.menu)
         while self.__running:
             try:
                 self.print_seek(self.s_len)
@@ -319,6 +339,12 @@ class Lumen():
             if is_pressed('ctrl + q'):
                 self.quit()
                 continue
+
+            if is_pressed('ctrl + p'):
+                if self.p.get_status() == 'playing':
+                    self.p.pause()
+                elif self.p.get_status() == 'paused':
+                    self.p.resume(False)
 
             if is_pressed('ctrl + s'):
                 self.stop()
