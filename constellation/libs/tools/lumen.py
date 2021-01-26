@@ -6,6 +6,7 @@ from tinytag import TinyTag
 import soundfile as sf
 import numpy as np
 from .quark import getdir, dir_exists, i_del, getpardir, b_to_i
+from math import floor
 
 
 class Lumen():
@@ -51,7 +52,7 @@ class Lumen():
         level_1, self.prev = self.prev[-1], self.prev[:-1]
         self.menu = getdir(1, level_1)
         self.selected = 0
-        self.print_items()
+        self.print_items(self.menu)
 
     def print_seek(self, total_len):
         """
@@ -86,13 +87,16 @@ class Lumen():
         for i in range(len(playlist)):
             if i == self.q:
                 self.meta.attron(color_pair(1))
-            self.meta.addnstr(i + 3, 1, playlist[i], p_len)
-            self.meta.attroff(color_pair(1))
-            self.meta.addstr('\n')
+            try:
+                self.meta.addnstr(i + 3, 1, playlist[i], p_len)
+                self.meta.attroff(color_pair(1))
+                self.meta.addstr('\n')
+            except Exception:
+                continue
 
         self.meta.refresh()
 
-    def print_items(self):
+    def print_items(self, menu):
         """
             Prompt curses to print each entry in a given menu
             on the main panel.
@@ -100,12 +104,23 @@ class Lumen():
 
         self.disp.clear()
         self.disp.box()
+        # temp = None
+        # dims = self.disp.getyx()
+        # y_len = dims[0]
 
-        for i, item in enumerate(self.menu):
+        for i, item in enumerate(menu):
+            if item is None:
+                continue
+
             if i == self.selected:
                 self.disp.attron(color_pair(1))
-            self.disp.addstr(i + 1, 1, item.name)
+            try:
+                self.disp.addstr(i + 1, 1, item.name)
+            except Exception:
+                continue
             self.disp.attroff(color_pair(1))
+            # if temp:
+            #     i = temp
 
         self.disp.refresh()
 
@@ -117,7 +132,7 @@ class Lumen():
             if self.q > 0:
                 self.q -= 1
                 self.play(self.temp)
-                self.print_items()
+                self.print_items(self.menu)
         except Exception:
             print(Exception)
 
@@ -129,7 +144,7 @@ class Lumen():
             if self.q < len(self.list) - 1:
                 self.q += 1
                 self.play(self.temp)
-                self.print_items()
+                self.print_items(self.menu)
         except Exception:
             print(Exception)
 
@@ -143,7 +158,7 @@ class Lumen():
                 self.p.close_alias()
                 if dir_exists(self.temp):
                     i_del(self.temp)
-                self.print_items()
+                self.print_items(self.menu)
         except Exception:
             print("No song in queue to stop")
             pass
@@ -200,17 +215,21 @@ class Lumen():
             key: keycode of the last key pressed
 
         """
-        file = self.menu[self.selected]
         enter_pressed = (key == KEY_ENTER or key in [10, 13])
-
         if key == KEY_UP and self.selected > 0:
             self.selected -= 1
-            self.print_items()
         if key == KEY_DOWN and self.selected < len(self.menu) - 1:
             self.selected += 1
-            self.print_items()
+
+        y_len = self.disp.getmaxyx()[0]
+
+        start = (floor(self.selected / y_len)) * y_len
+        menu = self.menu[start:]
+
+        self.print_items(menu)
 
         if enter_pressed:
+            file = self.menu[self.selected]
             if file.is_dir():
                 """ if this is a directory/folder, open it """
                 self.prev = np.append(  # get parent directory and add to tree
@@ -218,7 +237,7 @@ class Lumen():
                 sel_path = file.path  # path of selected folder
                 self.menu = getdir(seek=1, wdir=sel_path)
                 self.selected = 0
-                self.print_items()
+                self.print_items(self.menu)
 
             elif file.is_file():
                 playlist = [
@@ -247,7 +266,6 @@ class Lumen():
         if key == ord('q'):
             self.back()
 
-        self.print_items()
         sleep(0.025)
 
     def terminate(self):
@@ -260,7 +278,7 @@ class Lumen():
         """
             For thread compatibility, along with self.terminate()
         """
-        self.print_items()
+        self.print_items(self.menu)
         while self.__running:
             try:
                 self.print_seek(self.s_len)
