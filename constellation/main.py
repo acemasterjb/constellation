@@ -2,9 +2,17 @@ import curses
 from curses import wrapper
 import tracemalloc
 
-from libs.tools import quark
+# from libs.tools.quark import getdir
+
+from time import sleep
+
 from libs.tools import lumen
-from libs.tools.memman import deep_getsizeof
+
+
+# from libs.tools import quark
+# from libs.tools import lumen
+# from libs.tools.memman import deep_getsizeof
+# from libs.tools.objsize import asizeof
 # - ask for directory
 # - list songs in command window
 # - choose song
@@ -23,13 +31,20 @@ def main(stdscr):
     files.nodelay(True)
     files.keypad(True)
     seek = disp.subpad(int(y * 0.11), x, int(y * 0.9), 0)
-    # seek = disp.subpad(int(y * 0.14), x, int(y * 0.89), 0)
+    seek = disp.subpad(int(y * 0.14), x, int(y * 0.89), 0)
     # cmd = curses.newwin(5, x, 0, 0)
 
-    contents = quark.getdir()
+    # contents = getdir()
 
-    player = lumen.Lumen(files, meta_panel, seek, contents)
-    player.run_player()
+    is_run = True
+    while is_run:
+        key = stdscr.getch()
+        if key == ord('q'):
+            is_run = False
+        sleep(0.2)
+    # player = lumen.Lumen(files, meta_panel, seek, contents)
+    # print(asizeof(player) * 1e-6)
+    # player.run_player()
 
 
 wrapper(main)

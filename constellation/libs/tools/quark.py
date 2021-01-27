@@ -1,10 +1,11 @@
-import os
+from os import environ, remove, scandir, pardir
+from os.path import exists, dirname, abspath, join
 
-from tkinter import filedialog
-from tkinter import *
+from tkinter import filedialog, Tk
+# from tkinter import Tk
 from .DirectoryList import DirectoryList
 
-musiclib = os.environ['USERPROFILE'] + '\\music'
+musiclib = environ['USERPROFILE'] + '\\music'
 root = Tk()
 
 
@@ -18,7 +19,7 @@ def b_to_i(in_bytes):
 
 
 def dir_exists(file):
-    return os.path.exists(file)
+    return exists(file)
 
 
 def is_audio(file):
@@ -31,11 +32,11 @@ def is_audio(file):
 
 
 def i_del(item):
-    os.remove(item)
+    remove(item)
 
 
-def dirname(directory):
-    return os.path.dirname(directory)
+def dir_name(directory):
+    return dirname(directory)
 
 
 def check_album(song, key):
@@ -67,7 +68,7 @@ def dirscanner(directory, llist):
               to the folder.
     """
 
-    with os.scandir(directory) as folder:
+    with scandir(directory) as folder:
         for element in folder:
             llist.append(element)
             if element.is_dir():
@@ -82,7 +83,7 @@ def getpardir(currdir):
     """
         returns a <str> of the parent directory's path
     """
-    return(os.path.abspath(os.path.join(currdir, os.pardir)))
+    return(abspath(join(currdir, pardir)))
 
 
 def getdir(seek=0, wdir=musiclib):

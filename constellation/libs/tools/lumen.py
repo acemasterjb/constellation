@@ -1,10 +1,10 @@
-from curses import color_pair
-from libs.playsound.playsound import playsound
-from keyboard import is_pressed
-from time import sleep
+# from curses import color_pair
+# from libs.playsound.playsound import playsound
+# from keyboard import is_pressed
+# from time import sleep
 # from tinytag import TinyTag
 # import soundfile as sf
-import numpy as np
+# from numpy import array, sort
 from .quark import b_to_i
 from .DirectoryList import DirectoryList
 # from math import floor
@@ -41,7 +41,7 @@ class Lumen():
         """ misc attributes """
         self.menu = menu  # list of items in current dir
         self.prev = DirectoryList()  # list of paths of previous menus
-        self.list = np.array([])  # playlist/queue
+        self.list = array([])  # playlist/queue
         self.selected = 0  # selected item in menu
         self.temp = "__play_temp.wav"
         self.q = 0  # queue index
@@ -279,10 +279,10 @@ class Lumen():
     #                     for song in playlist]
     #             # dtype: 2D numpy array data types; integer and string
     #             dtype = [('track', 'i4'), ('song', 'U500')]
-    #             self.list = np.array(  # make a numbered track list
+    #             self.list = array(  # make a numbered track list
     #                 list(zip(idex, playlist)), dtype=dtype)
     #             # sort this track list
-    #             self.list = np.sort(self.list, order='track')
+    #             self.list = sort(self.list, order='track')
 
     #             try:
     #                 """ try to get the song's tag, els """
@@ -322,7 +322,7 @@ class Lumen():
             #             self.next()
             #         if self.list[-1] == self.list[self.q]:
             #             # if this is the last song in playlist
-            #             self.list = np.array([])  # empty playlist
+            #             self.list = array([])  # empty playlist
             # except Exception:
             #     self.seek.clear()
             #     x_pos = self.seek.getmaxyx()[1] - len(self.time)

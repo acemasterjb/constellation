@@ -271,7 +271,7 @@ try:  # sizeof(unicode_char)
     u = unicode('\0')
 except NameError:  # no unicode() in Python 3.0
     u = '\0'
-u = u.encode('unicode-internal')  # see .../Lib/test/test_sys.py
+u = u.encode('utf-8')  # see .../Lib/test/test_sys.py
 _sizeof_Cunicode = len(u)
 del u
 
