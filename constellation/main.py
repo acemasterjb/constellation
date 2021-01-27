@@ -1,14 +1,15 @@
 import curses
 from curses import wrapper
-import threading
+import tracemalloc
+
 from libs.tools import quark
 from libs.tools import lumen
-
+from libs.tools.memman import deep_getsizeof
 # - ask for directory
 # - list songs in command window
 # - choose song
 # - give option for shuffle, repeat, etc
-# song = playsound()
+tracemalloc.start()
 
 
 def main(stdscr):
@@ -28,8 +29,21 @@ def main(stdscr):
     contents = quark.getdir()
 
     player = lumen.Lumen(files, meta_panel, seek, contents)
-    tui = threading.Thread(target=player.run_player())
-    tui.start()
+    player.run_player()
 
 
 wrapper(main)
+
+snapshot = tracemalloc.take_snapshot()
+top_stats = snapshot.statistics('lineno')
+print("[ Top 10 ]")
+for stat in top_stats[:10]:
+    print(stat)
+
+print("\n\nTotal Memory used as per tracemalloc\n")
+culm_sum = 0
+for stat in top_stats:
+    culm_sum += stat.size
+print("Memory used (MB): ", (culm_sum * 1e-6))
+
+tracemalloc.stop()
