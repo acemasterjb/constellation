@@ -1,13 +1,13 @@
-# from curses import color_pair
-# from libs.playsound.playsound import playsound
-# from keyboard import is_pressed
-# from time import sleep
-# from tinytag import TinyTag
-# import soundfile as sf
+from curses import color_pair
+from libs.playsound.playsound import playsound
+from keyboard import is_pressed
+from time import sleep
+from tinytag import TinyTag
+import soundfile as sf
 # from numpy import array, sort
 from .quark import b_to_i
 from .DirectoryList import DirectoryList
-# from math import floor
+from math import floor
 # from .memman import deep_getsizeof
 
 

@@ -19,6 +19,8 @@ class DirectoryList:
             value = bytes(value, 'utf-8')
         elif type(value) is int:
             value = float(value)
+        elif type(value) is list:
+            value = tuple(value)
 
         new_node = ListNode(value)
 
@@ -77,6 +79,8 @@ class DirectoryList:
         try:
             if type(node[0].value) is bytes:
                 node[0].value = node[0].value.decode('utf-8')
+            if type(node[0].value) is tuple:
+                node[0].value = list(node[0].value)
         except Exception:
             pass
 
