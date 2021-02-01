@@ -1,10 +1,3 @@
-class Node:
-    def __init__(self, track, song):
-        self.track = track
-        self.song = song
-        self.next = (None,)
-
-
 def swap(Set, i1, i2):
     next_node = Set[i2].next[0]
     temp_node = Set[i1]
@@ -17,14 +10,19 @@ def swap(Set, i1, i2):
     temp_node.next = (next_node,)
 
 
-def partition(Set, start, stop):
+def partition(Set, start, stop, by):
     mid = (start + stop) / 2
     swap(Set, start, mid)
     pivot_i = start
-    pivot_val = Set[start].album
+    pivot_val = Set[start]
 
     for scan in range(start + 1, stop):
-        if Set[scan].album < pivot_val:
+        attrs = {"album": (Set[scan].album, pivot_val.album),
+                 "artist": (Set[scan].artist, pivot_val.artist),
+                 "track": (Set[scan].track, pivot_val.track),
+                 "name": (Set[scan], pivot_val)}
+
+        if attrs[by][0] < attrs[by][1]:
             pivot_i += 1
             swap(Set, pivot_i, scan)
 
@@ -32,11 +30,18 @@ def partition(Set, start, stop):
     return pivot_i
 
 
-def sort_album(Set, start, stop):
+def quicksortsong(Set, start, stop, by):
     if start < stop:
-        pivot = partition(Set, start, stop)
-        sort_album(Set, start, pivot - 1)
-        sort_album(Set, pivot + 1, stop)
+        pivot = partition(Set, start, stop, by)
+        quicksortsong(Set, start, pivot - 1, by)
+        quicksortsong(Set, pivot + 1, stop, by)
+
+
+class Node:
+    def __init__(self, track, song):
+        self.track = track
+        self.song = song
+        self.next = (None,)
 
 
 class Playlist:
@@ -92,10 +97,7 @@ class Playlist:
             self.s += 1
 
     def sort(self, by):
-        index = self.head
-
-        while index.next[0]:
-            pass
+        quicksortsong(self, 0, self.s - 1, by)
 
     def __getitem__(self, index):
         if isinstance(index, slice):
