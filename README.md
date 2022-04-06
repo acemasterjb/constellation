@@ -27,7 +27,7 @@ FLAC files are converted to WAVE files via [simpleaudio](https://github.com/hami
 After cloning this repo, you can use this install these dependencies with the requires.txt file
 
 ```
-~path\to\clone\directory> pip -r requires.txt
+~path\to\clone\directory> pip install -r requires.txt
 ```
 
 ## compiling instructions
