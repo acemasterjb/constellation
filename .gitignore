@@ -6,6 +6,8 @@ __pycache__/
 *.egg-info
 dist
 build
+.vscode
+target
 
 # test files
 *.mp3
@@ -18,3 +20,7 @@ example.py
 
 # venv
 virt
+.venv
+
+# lock files
+Cargo.lock
