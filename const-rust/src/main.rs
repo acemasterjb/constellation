@@ -56,12 +56,12 @@ impl Events {
         }
     }
 
-    // pub fn set_items(&mut self, items: Vec<String>) {
-    //     self.items = items;
-    //     // We reset the state as the associated items have changed. This effectively reset
-    //     // the selection as well as the stored offset.
-    //     self.state = ListState::default();
-    // }
+    pub fn set_items(&mut self, items: Vec<std::fs::DirEntry>) {
+        self.items = items;
+        // We reset the state as the associated items have changed. This effectively reset
+        // the selection as well as the stored offset.
+        self.state = ListState::default();
+    }
 
     // Select the next item. This will not be reflected until the widget is drawn in the
     // `Terminal::draw` callback using `Frame::render_stateful_widget`.
@@ -204,7 +204,7 @@ fn main()
                         break;
                     } else {
                         let upper_level = curr_path.parent().unwrap();
-                        events = Events::new(
+                        events.set_items(
                             read_dir(upper_level).unwrap()
                             .map(
                                 | path: Result<std::fs::DirEntry, std::io::Error> |
