@@ -150,12 +150,13 @@ fn main()
 
     let working_dir = home.to_path_buf();
     let paths: std::fs::ReadDir = read_dir(working_dir).unwrap();
-    
+
     let mut events = Events::new(
         paths.map(| path: Result<std::fs::DirEntry, std::io::Error> | {
             path.unwrap()
         }).collect()
     );
+    let mut curr_path = home.to_path_buf();
 
     loop {
         terminal.draw(|frame| {
@@ -171,7 +172,7 @@ fn main()
                 ].as_ref(),).split(size)
                 
             ;
-    
+
             let items: Vec<ListItem>= events.items.iter(
                 ).map(
                     |i| ListItem::new(i.file_name().into_string().unwrap())
@@ -194,11 +195,26 @@ fn main()
         match rx.recv()? {
             Event::Input(event) => match event.code {
                 KeyCode::Char('q') => {
-                    events.unselect();
-                    terminal.clear()?;
-                    disable_raw_mode()?;
-                    terminal.show_cursor()?;
-                    break;
+                    let home = home;
+                    if curr_path.eq(&home) {
+                        events.unselect();
+                        terminal.clear()?;
+                        disable_raw_mode()?;
+                        terminal.show_cursor()?;
+                        break;
+                    } else {
+                        let upper_level = curr_path.parent().unwrap();
+                        events = Events::new(
+                            read_dir(upper_level).unwrap()
+                            .map(
+                                | path: Result<std::fs::DirEntry, std::io::Error> |
+                                {
+                                    path.unwrap()
+                                }
+                            ).collect()
+                        );
+                        curr_path = upper_level.to_path_buf();
+                    }
                 }
                 KeyCode::Down => {
                     events.next()
@@ -208,6 +224,7 @@ fn main()
                 }
                 KeyCode::Enter => {
                     let selected_item = &events.items[events.state.selected().unwrap()];
+                    curr_path = selected_item.path();
                     if selected_item.path().is_dir() {
                         events = Events::new(
                             read_dir(selected_item.path()).unwrap()
