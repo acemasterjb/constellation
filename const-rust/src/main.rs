@@ -114,7 +114,9 @@ impl From<Window> for usize {
 fn main()
     -> Result<(), Box<dyn std::error::Error>>
 {
-    let home = if OS == "windows" { var("USERPROFILE").unwrap() } else { var("HOME").unwrap() };
+    let home = if OS == "windows" {
+        var("USERPROFILE").unwrap() } else { var("HOME").unwrap()
+    };
     let home = Path::new(&home);
     enable_raw_mode().expect("raw mode");
 
@@ -141,24 +143,14 @@ fn main()
         }
     });
 
-    // let stdin = stdin();
     let stdout = stdout();
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
 
-    
-    
-    // let music_path = home.join("music");
-    // let working_dir = if music_path.is_dir() { music_path } else { home.to_path_buf() };
     let working_dir = home.to_path_buf();
     let paths: std::fs::ReadDir = read_dir(working_dir).unwrap();
     
-    // let paths: ReadDir = working_dir;
-    // for path in paths {
-    //         println!("- {}", path.unwrap().path().to_string_lossy())
-    //     }
-        
     let mut events = Events::new(
         paths.map(| path: Result<std::fs::DirEntry, std::io::Error> | {
             path.unwrap()
@@ -180,7 +172,10 @@ fn main()
                 
             ;
     
-            let items: Vec<ListItem>= events.items.iter().map(|i| ListItem::new(i.file_name().into_string().unwrap())).collect();
+            let items: Vec<ListItem>= events.items.iter(
+                ).map(
+                    |i| ListItem::new(i.file_name().into_string().unwrap())
+            ).collect();
             let lister = Block::default()
             .title("Pick your music directory")
             .borders(Borders::ALL)
@@ -220,7 +215,8 @@ fn main()
                                 | path: Result<std::fs::DirEntry, std::io::Error> |
                                 {
                                     path.unwrap()
-                                }).collect()
+                                }
+                            ).collect()
                         );
                     }
                 }
@@ -230,7 +226,5 @@ fn main()
         }
     };
 
-
     Ok(())
-
 }
