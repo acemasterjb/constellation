@@ -25,6 +25,8 @@ use tui::{
 use tui::widgets::{
     // Widget,
     Block, Borders, BorderType, List, ListItem, ListState};
+use walkdir::{DirEntry as WalkDirEntry, WalkDir, Error as WalkDirError};
+
 // use tui::layout::{Layout, Constraint, Direction};
 
 enum Event<I> {
@@ -109,6 +111,13 @@ impl From<Window> for usize {
             Window::Music => 1
         }
     }
+}
+
+fn is_hidden(entry: &WalkDirEntry) -> bool {
+    entry.file_name()
+         .to_str()
+         .map(|s| s.starts_with("."))
+         .unwrap_or(false)
 }
 
 fn main()
@@ -235,6 +244,25 @@ fn main()
                                 }
                             ).collect()
                         );
+                    }
+                }
+                KeyCode::Char('c') => {
+                    let selected_item = &events.items[events.state.selected().unwrap()];
+                    let selected_path = selected_item.path();
+                    if selected_path.is_dir(){
+                        let walker = WalkDir::new(selected_path.to_str().unwrap()).into_iter();
+                        let filterd_entries= walker.filter_entry(
+                            | entry | {
+                                !is_hidden(entry)
+                            }
+                        );
+                        let collected_entries: Vec<WalkDirEntry> = filterd_entries.map(
+                            | entry: Result<WalkDirEntry, WalkDirError> | { 
+                            entry.unwrap()
+                         }).collect();
+                        // events = Events::new(
+                            
+                        // );
                     }
                 }
                 _ => {}
