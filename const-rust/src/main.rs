@@ -40,10 +40,15 @@ enum Window {
     Music
 }
 
+enum ConstDirEntry {
+    StdDirEntry(std::fs::DirEntry),
+    WlkDirEntry(WalkDirEntry)
+}
+
 // List Events to display.
 struct Events {
     // `items` is the state managed by your application.
-    items: Vec<std::fs::DirEntry>,
+    items: Vec<ConstDirEntry>,
     // `state` is the state that can be modified by the UI. It stores the index of the selected
     // item as well as the offset computed during the previous draw call (used to implement
     // natural scrolling).
@@ -51,14 +56,14 @@ struct Events {
 }
 
 impl Events {
-    fn new(items: Vec<std::fs::DirEntry>) -> Events {
+    fn new(items: Vec<ConstDirEntry>) -> Events {
         Events {
             items,
             state: ListState::default(),
         }
     }
 
-    pub fn set_items(&mut self, items: Vec<std::fs::DirEntry>) {
+    pub fn set_items(&mut self, items: Vec<ConstDirEntry>) {
         self.items = items;
         // We reset the state as the associated items have changed. This effectively reset
         // the selection as well as the stored offset.
@@ -120,6 +125,17 @@ fn is_hidden(entry: &WalkDirEntry) -> bool {
          .unwrap_or(false)
 }
 
+fn is_a_music_file(entry: &WalkDirEntry) -> bool {
+    entry.file_name()
+         .to_str()
+         .map(|s| {
+             s.ends_with(".mp3") ||
+             s.ends_with(".flac") ||
+             s.ends_with(".wav")
+        })
+         .unwrap_or(false)
+}
+
 fn main()
     -> Result<(), Box<dyn std::error::Error>>
 {
@@ -162,7 +178,7 @@ fn main()
 
     let mut events = Events::new(
         paths.map(| path: Result<std::fs::DirEntry, std::io::Error> | {
-            path.unwrap()
+            ConstDirEntry::StdDirEntry(path.unwrap())
         }).collect()
     );
     let mut curr_path = home.to_path_buf();
@@ -184,7 +200,17 @@ fn main()
 
             let items: Vec<ListItem>= events.items.iter(
                 ).map(
-                    |i| ListItem::new(i.file_name().into_string().unwrap())
+                    |i| {
+                        match i {
+                            ConstDirEntry::StdDirEntry (i) => {
+                                ListItem::new(i.file_name().into_string().unwrap())
+                            }
+                            ConstDirEntry::WlkDirEntry (j) => {
+                                ListItem::new(j.file_name().to_str().unwrap())
+                            }
+                        }
+                        
+                    }
             ).collect();
             let lister = Block::default()
             .title("Pick your music directory")
@@ -218,7 +244,7 @@ fn main()
                             .map(
                                 | path: Result<std::fs::DirEntry, std::io::Error> |
                                 {
-                                    path.unwrap()
+                                    ConstDirEntry::StdDirEntry(path.unwrap())
                                 }
                             ).collect()
                         );
@@ -233,36 +259,98 @@ fn main()
                 }
                 KeyCode::Enter => {
                     let selected_item = &events.items[events.state.selected().unwrap()];
-                    curr_path = selected_item.path();
-                    if selected_item.path().is_dir() {
-                        events = Events::new(
-                            read_dir(selected_item.path()).unwrap()
-                            .map(
-                                | path: Result<std::fs::DirEntry, std::io::Error> |
-                                {
-                                    path.unwrap()
-                                }
-                            ).collect()
-                        );
+                    match selected_item {
+                        ConstDirEntry::StdDirEntry(i) => {
+                            curr_path = i.path();
+                            if i.path().is_dir() {
+                                events = Events::new(
+                                    read_dir(i.path()).unwrap()
+                                    .map(
+                                        | path: Result<std::fs::DirEntry, std::io::Error> |
+                                        {
+                                            ConstDirEntry::StdDirEntry(path.unwrap())
+                                        }
+                                    ).collect()
+                                );
+                            }
+                        }
+                        ConstDirEntry::WlkDirEntry(j) => {
+                            curr_path = j.path().to_path_buf();
+                            if j.path().is_dir() {
+                                events = Events::new(
+                                    read_dir(j.path()).unwrap()
+                                    .map(
+                                        | path: Result<std::fs::DirEntry, std::io::Error> |
+                                        {
+                                            ConstDirEntry::StdDirEntry(path.unwrap())
+                                        }
+                                    ).collect()
+                                )
+                            }
+                        }
                     }
                 }
                 KeyCode::Char('c') => {
                     let selected_item = &events.items[events.state.selected().unwrap()];
-                    let selected_path = selected_item.path();
-                    if selected_path.is_dir(){
-                        let walker = WalkDir::new(selected_path.to_str().unwrap()).into_iter();
-                        let filterd_entries= walker.filter_entry(
-                            | entry | {
-                                !is_hidden(entry)
+                    match selected_item {
+                        ConstDirEntry::StdDirEntry(i) => {
+                            let selected_path = i.path();
+                            if selected_path.is_dir(){
+                                let walker = WalkDir::new(
+                                    selected_path.to_str().unwrap()
+                                ).into_iter();
+
+                                let filterd_entries= walker.filter_entry(
+                                    | entry | {
+                                        !is_hidden(entry) &&
+                                        is_a_music_file(entry)
+                                    }
+                                );
+
+                                let collected_entries: Vec<WalkDirEntry> = filterd_entries.map(
+                                    | entry: Result<WalkDirEntry, WalkDirError> | { 
+                                    entry.unwrap()
+                                }).collect();
+                                events = Events::new(
+                                    collected_entries.into_iter()
+                                    .map(
+                                        | path: WalkDirEntry |
+                                        {
+                                            ConstDirEntry::WlkDirEntry(path)
+                                        }
+                                    ).collect()
+                                );
                             }
-                        );
-                        let collected_entries: Vec<WalkDirEntry> = filterd_entries.map(
-                            | entry: Result<WalkDirEntry, WalkDirError> | { 
-                            entry.unwrap()
-                         }).collect();
-                        // events = Events::new(
-                            
-                        // );
+                        }
+                        ConstDirEntry::WlkDirEntry(j) => {
+                            let selected_path = j.path();
+                            if selected_path.is_dir() {
+                                let walker = WalkDir::new(
+                                    selected_path.to_str().unwrap()
+                                ).into_iter();
+
+                                let filterd_entries= walker.filter_entry(
+                                    | entry | {
+                                        !is_hidden(entry) &&
+                                        is_a_music_file(entry)
+                                    }
+                                );
+
+                                let collected_entries: Vec<WalkDirEntry> = filterd_entries.map(
+                                    | entry: Result<WalkDirEntry, WalkDirError> | { 
+                                    entry.unwrap()
+                                }).collect();
+                                events = Events::new(
+                                    collected_entries.into_iter()
+                                    .map(
+                                        | path: WalkDirEntry |
+                                        {
+                                            ConstDirEntry::WlkDirEntry(path)
+                                        }
+                                    ).collect()
+                                );
+                            }
+                        }
                     }
                 }
                 _ => {}
