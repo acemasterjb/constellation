@@ -126,15 +126,22 @@ fn is_hidden(entry: &WalkDirEntry) -> bool {
 }
 
 fn is_a_music_file(entry: &WalkDirEntry) -> bool {
-    entry.file_name()
+    let file_extension = entry.path()
+         .extension()
+         .unwrap()
          .to_str()
-         .map(|s| {
-             s.ends_with(".mp3") ||
-             s.ends_with(".flac") ||
-             s.ends_with(".wav")
-        })
-         .unwrap_or(false)
+         .unwrap();
+    
+    let music_extensions = ["flac", "mp3", "wav"];
+
+    music_extensions.contains(&file_extension)
 }
+
+fn is_a_dir(entry: &WalkDirEntry) -> bool {
+    entry.file_type().is_dir()
+}
+
+// fn render_music<'a>()
 
 fn main()
     -> Result<(), Box<dyn std::error::Error>>
@@ -182,6 +189,7 @@ fn main()
         }).collect()
     );
     let mut curr_path = home.to_path_buf();
+    let mut active_window = Window::Directory;
 
     loop {
         terminal.draw(|frame| {
@@ -302,8 +310,7 @@ fn main()
 
                                 let filterd_entries= walker.filter_entry(
                                     | entry | {
-                                        !is_hidden(entry) &&
-                                        is_a_music_file(entry)
+                                        !is_hidden(entry)
                                     }
                                 );
 
@@ -313,6 +320,13 @@ fn main()
                                 }).collect();
                                 events = Events::new(
                                     collected_entries.into_iter()
+                                    .filter(
+                                        | entry: &WalkDirEntry |
+                                        {
+                                            !is_a_dir(entry) &&
+                                            is_a_music_file(entry)
+                                        }
+                                    )
                                     .map(
                                         | path: WalkDirEntry |
                                         {
@@ -320,6 +334,8 @@ fn main()
                                         }
                                     ).collect()
                                 );
+
+                                active_window = Window::Music;
                             }
                         }
                         ConstDirEntry::WlkDirEntry(j) => {
@@ -331,8 +347,7 @@ fn main()
 
                                 let filterd_entries= walker.filter_entry(
                                     | entry | {
-                                        !is_hidden(entry) &&
-                                        is_a_music_file(entry)
+                                        !is_hidden(entry)
                                     }
                                 );
 
@@ -342,6 +357,13 @@ fn main()
                                 }).collect();
                                 events = Events::new(
                                     collected_entries.into_iter()
+                                    .filter(
+                                        | entry: &WalkDirEntry |
+                                        {
+                                            !is_a_dir(entry) &&
+                                            is_a_music_file(entry)
+                                        }
+                                    )
                                     .map(
                                         | path: WalkDirEntry |
                                         {
