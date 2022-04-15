@@ -1,4 +1,5 @@
 use std::{thread};
+use std::error::Error;
 use std::io::{
     // Error, stdin,
     stdout
@@ -6,7 +7,7 @@ use std::io::{
 use std::env::{var};
 use std::env::consts::{OS};
 use std::fs::{read_dir};
-use std::path::Path;
+use std::path::{Path};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
@@ -14,20 +15,22 @@ use crossterm::{
     event::{self, Event as CEvent, KeyCode},
     terminal::{disable_raw_mode, enable_raw_mode},
 };
+use id3::{Tag as ID3Tag, TagLike};
+use metaflac::{Tag as VorbisTag};
 use tui::{
     backend::CrosstermBackend,
-    layout::Constraint,
-    layout::Direction,
-    layout::Layout,
     Terminal,
-    style::{Style, Color}
+    style::{Color, Style, Modifier}
 };
+use tui::layout::{Layout, Constraint, Direction, Rect};
+use tui::text::{Span, Spans};
 use tui::widgets::{
-    // Widget,
-    Block, Borders, BorderType, List, ListItem, ListState};
+    Block, Borders, BorderType,
+    Cell, List, ListItem,
+    ListState, Row, Table,
+    TableState
+};
 use walkdir::{DirEntry as WalkDirEntry, WalkDir, Error as WalkDirError};
-
-// use tui::layout::{Layout, Constraint, Direction};
 
 enum Event<I> {
     Input(I),
@@ -44,6 +47,7 @@ enum ConstDirEntry {
     StdDirEntry(std::fs::DirEntry),
     WlkDirEntry(WalkDirEntry)
 }
+
 
 // List Events to display.
 struct Events {
@@ -109,6 +113,30 @@ impl Events {
     }
 }
 
+// Song Metadata
+struct SongMetadata {
+    artist: Vec<String>,
+    album: String,
+    name: String,
+    queue: u32
+}
+
+impl SongMetadata {
+    fn new (
+        artist: &Vec<String>,
+        album: &String,
+        name: &String,
+        queue: u32
+    ) -> SongMetadata {
+        SongMetadata{
+            artist: *artist,
+            album: *album,
+            name: *name,
+            queue
+        }
+    }
+}
+
 impl From<Window> for usize {
     fn from(input: Window) -> usize {
         match input {
@@ -132,16 +160,107 @@ fn is_a_music_file(entry: &WalkDirEntry) -> bool {
          .to_str()
          .unwrap();
     
-    let music_extensions = ["flac", "mp3", "wav"];
+    let song_extensions = ["flac", "mp3", "wav"];
 
-    music_extensions.contains(&file_extension)
+    song_extensions.contains(&file_extension)
 }
 
 fn is_a_dir(entry: &WalkDirEntry) -> bool {
     entry.file_type().is_dir()
 }
 
-// fn render_music<'a>()
+fn render_music<'a>(songs: Vec<WalkDirEntry>) -> Table<'a> {
+    let music_section = Block::default()
+        .borders(Borders::ALL)
+        .style(Style::default().fg(Color::White))
+        .title("Music")
+        .border_type(BorderType::Rounded);
+
+    let song_items: Vec<_> = songs.iter()
+        .map(
+            | song |{
+                ListItem::new(Spans::from(vec![Span::styled(
+                    song.path().to_string_lossy(),
+                    Style::default()
+                )]))
+            }
+        ).collect();
+        
+    let songs_with_meta: Vec<SongMetadata> = songs.iter()
+    .map(
+        | song |{
+            let id3_options = [Some("mp3"), Some("wav")];
+            let song_path = song.path();
+            let song_extension = song_path.extension().unwrap().to_str();
+            if id3_options.contains(&song_extension){
+                let id3_tag = ID3Tag::read_from_path(
+                    song_path.to_str().unwrap()
+                ).unwrap();
+                
+                SongMetadata::new(
+                    vec![String::from(id3_tag.artist().unwrap())],
+                    &String::from(id3_tag.album().unwrap()),
+                    &String::from(id3_tag.title().unwrap()),
+                    id3_tag.track().unwrap()
+                )
+            } else {
+                let vorbis_tag = VorbisTag::read_from_path(
+                    song_path.to_str().unwrap()
+                ).unwrap();
+
+                let vorbis_comment = vorbis_tag.vorbis_comments().unwrap();
+                SongMetadata::new(
+                    vorbis_comment.artist().unwrap(),
+                    &vorbis_comment.album().unwrap()[0],
+                    &vorbis_comment.title().unwrap()[0],
+                    vorbis_comment.track().unwrap()
+                )
+            }
+        }
+    ).collect();
+    
+    Table::new(
+        songs_with_meta.iter().map(
+            | song |{
+                Row::new(vec![
+                    Cell::from(Span::raw(song.queue.to_string())),
+                    Cell::from(Span::raw(song.album)),
+                    Cell::from(Span::raw(song.artist.join(","))),
+                    Cell::from(Span::raw(song.name)),
+                ])
+            }
+        ).collect()
+    )
+    .header(Row::new(
+        vec![
+            Cell::from(
+                Span::styled("#", Style::default().add_modifier(Modifier::BOLD))
+            ),
+            Cell::from(
+                Span::styled("Album", Style::default().add_modifier(Modifier::BOLD))
+            ),
+            Cell::from(
+                Span::styled("Artist", Style::default().add_modifier(Modifier::BOLD))
+            ),
+            Cell::from(
+                Span::styled("Name", Style::default().add_modifier(Modifier::BOLD))
+            )
+        ]
+    ))
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .style(Style::default().fg(Color::White))
+            .title("Music Details")
+            .border_type(BorderType::Rounded)
+    )
+    .widths(&[
+        Constraint::Percentage(5),
+        Constraint::Percentage(25),
+        Constraint::Percentage(15),
+        Constraint::Percentage(35),
+    ])
+}
 
 fn main()
     -> Result<(), Box<dyn std::error::Error>>
@@ -188,6 +307,7 @@ fn main()
             ConstDirEntry::StdDirEntry(path.unwrap())
         }).collect()
     );
+    events.state.select(Some(0));  // select the first item by default
     let mut curr_path = home.to_path_buf();
     let mut active_window = Window::Directory;
 
@@ -206,33 +326,49 @@ fn main()
                 
             ;
 
-            let items: Vec<ListItem>= events.items.iter(
-                ).map(
-                    |i| {
-                        match i {
-                            ConstDirEntry::StdDirEntry (i) => {
-                                ListItem::new(i.file_name().into_string().unwrap())
+            match active_window {
+                Window::Directory => {
+                    let items: Vec<ListItem>= events.items.iter(
+                    ).map(
+                        |i| {
+                            match i {
+                                ConstDirEntry::StdDirEntry (i) => {
+                                    ListItem::new(i.file_name().into_string().unwrap())
+                                }
+                                ConstDirEntry::WlkDirEntry (j) => {
+                                    ListItem::new(j.file_name().to_str().unwrap())
+                                }
                             }
-                            ConstDirEntry::WlkDirEntry (j) => {
-                                ListItem::new(j.file_name().to_str().unwrap())
-                            }
+                            
                         }
-                        
-                    }
-            ).collect();
-            let lister = Block::default()
-            .title("Pick your music directory")
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded);
-            let list = List::new(items)
-                .block(lister)
-                .highlight_style(
-                    Style::default()
-                    .bg(Color::White)
-                    .fg(Color::Black)
-                );
-    
-            frame.render_stateful_widget(list, chunks[1], &mut events.state);
+                    ).collect();
+                    let lister = Block::default()
+                    .title("Pick your music directory")
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded);
+                    let list = List::new(items)
+                        .block(lister)
+                        .highlight_style(
+                            Style::default()
+                            .bg(Color::White)
+                            .fg(Color::Black)
+                        );
+                    frame.render_stateful_widget(list, chunks[1], &mut events.state);
+                }
+                Window::Music => {
+                    // frame.render_stateful_widget(
+                    //     render_music(
+                    //         events.items.iter().map(
+                    //             | event |{
+                    //                 ConstDirEntry::WlkDirEntry(event)
+                    //             }
+                    //         )
+                    //     ),
+                    //     chunks[1],
+
+                    // )
+                }
+            }
         })?;
 
         match rx.recv()? {
@@ -281,6 +417,7 @@ fn main()
                                     ).collect()
                                 );
                             }
+                            events.state.select(Some(0));
                         }
                         ConstDirEntry::WlkDirEntry(j) => {
                             curr_path = j.path().to_path_buf();
@@ -295,6 +432,7 @@ fn main()
                                     ).collect()
                                 )
                             }
+                            events.state.select(Some(0));
                         }
                     }
                 }
@@ -335,8 +473,8 @@ fn main()
                                     ).collect()
                                 );
 
-                                active_window = Window::Music;
-                            }
+                            };
+                            active_window = Window::Music;
                         }
                         ConstDirEntry::WlkDirEntry(j) => {
                             let selected_path = j.path();
@@ -371,7 +509,8 @@ fn main()
                                         }
                                     ).collect()
                                 );
-                            }
+                            };
+                            active_window = Window::Music;
                         }
                     }
                 }
