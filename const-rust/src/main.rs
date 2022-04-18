@@ -1,5 +1,5 @@
 use std::{thread};
-use std::error::Error;
+use std::default::Default;
 use std::io::{
     // Error, stdin,
     stdout
@@ -22,8 +22,8 @@ use tui::{
     Terminal,
     style::{Color, Style, Modifier}
 };
-use tui::layout::{Layout, Constraint, Direction, Rect};
-use tui::text::{Span, Spans};
+use tui::layout::{Layout, Constraint, Direction};
+use tui::text::{Span};
 use tui::widgets::{
     Block, Borders, BorderType,
     Cell, List, ListItem,
@@ -43,11 +43,6 @@ enum Window {
     Music
 }
 
-enum ConstDirEntry {
-    StdDirEntry(std::fs::DirEntry),
-    WlkDirEntry(WalkDirEntry)
-}
-
 trait ADirEntry {
     fn get_file_name<'a>(&'a self) -> String;
 
@@ -58,22 +53,49 @@ trait ADirEntry {
     fn get_extension<'a>(&'a self) -> String;
 }
 
+trait WidgetState {
+    fn selected(&self) -> Option<usize>;
+
+    fn select_item(&mut self, index: Option<usize>);
+}
+
+impl WidgetState for ListState {
+    fn selected(&self) -> Option<usize>{
+        self.selected()
+    }
+
+    fn select_item(&mut self, index: Option<usize>) {
+        self.select(index)
+    }
+}
+impl WidgetState for TableState {
+    fn selected(&self) -> Option<usize>{
+        self.selected()
+    }
+
+    fn select_item(&mut self, index: Option<usize>) {
+        self.select(index)
+    }
+}
 
 // List Events to display.
-struct Events {
+struct Events<T: WidgetState + Default> {
     // `items` is the state managed by your application.
     items: Vec<String>,
     // `state` is the state that can be modified by the UI. It stores the index of the selected
     // item as well as the offset computed during the previous draw call (used to implement
     // natural scrolling).
-    state: ListState
+    state: T
 }
 
-impl Events {
-    fn new(items: Vec<String>) -> Events {
+impl<T> Events<T>
+where 
+    T: WidgetState + Default
+{
+    fn new(items: Vec<String>) -> Events<T> {
         Events {
             items,
-            state: ListState::default(),
+            state: T::default(),
         }
     }
 
@@ -81,7 +103,7 @@ impl Events {
         self.items = items;
         // We reset the state as the associated items have changed. This effectively reset
         // the selection as well as the stored offset.
-        self.state = ListState::default();
+        self.state = T::default();
     }
 
     // Select the next item. This will not be reflected until the widget is drawn in the
@@ -97,7 +119,7 @@ impl Events {
             }
             None => 0,
         };
-        self.state.select(Some(i));
+        self.state.select_item(Some(i));
     }
 
     // Select the previous item. This will not be reflected until the widget is drawn in the
@@ -113,13 +135,13 @@ impl Events {
             }
             None => 0,
         };
-        self.state.select(Some(i));
+        self.state.select_item(Some(i));
     }
 
     // Unselect the currently selected item if any. The implementation of `ListState` makes
     // sure that the stored offset is also reset.
     pub fn unselect(&mut self) {
-        self.state.select(None);
+        self.state.select_item(None);
     }
 }
 
@@ -361,7 +383,7 @@ fn main()
     let working_dir = home.to_path_buf();
     let paths: std::fs::ReadDir = read_dir(working_dir).unwrap();
 
-    let mut events = Events::new(
+    let mut events: Events<ListState> = Events::new(
         paths.map(| path: Result<std::fs::DirEntry, std::io::Error> | {
             String::from(path.unwrap().path().to_str().unwrap())
         }).collect()
