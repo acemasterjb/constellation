@@ -9,6 +9,7 @@ edition = "2021"
 crossterm = { version = "0.22"}
 id3 = "1.0.2"
 metaflac = "0.2"
+rodio = "0.15.0"
 thiserror = "1.0"
 tui = {version = "0.17", default-features = false, features = ['crossterm'] }
 walkdir = "2"

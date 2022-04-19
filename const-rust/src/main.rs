@@ -1,12 +1,9 @@
 use std::{thread};
 use std::default::Default;
-use std::io::{
-    // Error, stdin,
-    stdout
-};
+use std::io::{BufReader, stdout};
 use std::env::{var};
 use std::env::consts::{OS};
-use std::fs::{FileType, read_dir};
+use std::fs::{File, FileType, read, read_dir};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -17,6 +14,8 @@ use crossterm::{
 };
 use id3::{Tag as ID3Tag, TagLike};
 use metaflac::{Tag as VorbisTag};
+use rodio::{Decoder, OutputStream, Sink};
+use rodio::source::{Source};
 use tui::{
     backend::CrosstermBackend,
     Terminal,
@@ -79,6 +78,7 @@ impl WidgetState for TableState {
 }
 
 // List Events to display.
+#[derive(Default)]
 struct Events<T: WidgetState + Default> {
     // `items` is the state managed by your application.
     items: Vec<String>,
@@ -248,28 +248,13 @@ fn is_a_dir(entry: &WalkDirEntry) -> bool {
 }
 
 fn render_music<'a>(songs: Vec<WalkDirEntry>) -> Table<'a> {
-    // let music_section = Block::default()
-    // .borders(Borders::ALL)
-    // .style(Style::default().fg(Color::White))
-    // .title("Music")
-    // .border_type(BorderType::Rounded);
-
-    // let song_items: Vec<_> = songs.iter()
-    //     .map(
-    //         | song |{
-    //             ListItem::new(Spans::from(vec![Span::styled(
-    //                 song.path().to_string_lossy(),
-    //                 Style::default()
-    //             )]))
-    //         }
-    //     ).collect();
-        
     let songs_with_meta: Vec<SongMetadata> = songs.iter()
     .map(
-        | song |{
+        | song | {
             let id3_options = [Some("mp3"), Some("wav")];
             let song_path = song.path();
             let song_extension = song_path.extension().unwrap().to_str();
+
             if id3_options.contains(&song_extension){
                 let id3_tag = ID3Tag::read_from_path(
                     song_path.to_str().unwrap()
@@ -299,7 +284,7 @@ fn render_music<'a>(songs: Vec<WalkDirEntry>) -> Table<'a> {
     ).collect();
 
     let song_details_rows: Vec<Row> = songs_with_meta.iter().map(
-        | song |{
+        | song | {
             Row::new(vec![
                 Cell::from(Span::raw(song.queue.to_string())),
                 Cell::from(Span::raw(song.album.to_string())),
@@ -309,38 +294,41 @@ fn render_music<'a>(songs: Vec<WalkDirEntry>) -> Table<'a> {
         }
     ).collect();
 
-    Table::new(
-        song_details_rows
-    )
-    .header(Row::new(
-        vec![
-            Cell::from(
-                Span::styled("#", Style::default().add_modifier(Modifier::BOLD))
-            ),
-            Cell::from(
-                Span::styled("Album", Style::default().add_modifier(Modifier::BOLD))
-            ),
-            Cell::from(
-                Span::styled("Artist", Style::default().add_modifier(Modifier::BOLD))
-            ),
-            Cell::from(
-                Span::styled("Name", Style::default().add_modifier(Modifier::BOLD))
-            )
-        ]
-    ))
-    .block(
-        Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default().fg(Color::White))
-            .title("Music Details")
-            .border_type(BorderType::Rounded)
-    )
-    .widths(&[
-        Constraint::Percentage(5),
-        Constraint::Percentage(25),
-        Constraint::Percentage(15),
-        Constraint::Percentage(35),
-    ])
+    Table::new(song_details_rows)
+        .highlight_style(
+            Style::default()
+                .bg(Color::White)
+                .fg(Color::Black)
+        )
+        .header(Row::new(
+            vec![
+                Cell::from(
+                    Span::styled("#", Style::default().add_modifier(Modifier::BOLD))
+                ),
+                Cell::from(
+                    Span::styled("Album", Style::default().add_modifier(Modifier::BOLD))
+                ),
+                Cell::from(
+                    Span::styled("Artist", Style::default().add_modifier(Modifier::BOLD))
+                ),
+                Cell::from(
+                    Span::styled("Name", Style::default().add_modifier(Modifier::BOLD))
+                )
+            ]
+        ))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .style(Style::default().fg(Color::White))
+                .title("Library")
+                .border_type(BorderType::Rounded)
+        )
+        .widths(&[
+            Constraint::Percentage(5),
+            Constraint::Percentage(25),
+            Constraint::Percentage(15),
+            Constraint::Percentage(35),
+        ])
 }
 
 fn main()
@@ -383,14 +371,20 @@ fn main()
     let working_dir = home.to_path_buf();
     let paths: std::fs::ReadDir = read_dir(working_dir).unwrap();
 
+    let mut music_events: Events<TableState> = Events::default();
+    music_events.state = TableState::default();
     let mut events: Events<ListState> = Events::new(
         paths.map(| path: Result<std::fs::DirEntry, std::io::Error> | {
             String::from(path.unwrap().path().to_str().unwrap())
         }).collect()
     );
     events.state.select(Some(0));  // select the first item by default
-    // let mut curr_path = home.to_path_buf();
+    let mut collected_entries: Vec<WalkDirEntry> = vec![];
+    let mut music_path: String = String::default();
     let mut active_window = Window::Directory;
+
+    // let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    let (music_sink, _) = Sink::new_idle();
 
     loop {
         terminal.draw(|frame| {
@@ -416,31 +410,26 @@ fn main()
                         )
                     ).collect();
 
-                    let lister = Block::default()
+                    let list_block = Block::default()
                     .title("Pick your music directory")
                     .borders(Borders::ALL)
                     .border_type(BorderType::Rounded);
                     let list = List::new(items)
-                        .block(lister)
+                        .block(list_block)
                         .highlight_style(
                             Style::default()
                             .bg(Color::White)
                             .fg(Color::Black)
                         );
-                    frame.render_stateful_widget(list, chunks[1], &mut events.state);
+
+                        frame.render_stateful_widget(list, chunks[1], &mut events.state);
                 }
                 Window::Music => {
-                    // frame.render_stateful_widget(
-                    //     render_music(
-                    //         events.items.iter().map(
-                    //             | event |{
-                    //                 ConstDirEntry::WlkDirEntry(event)
-                    //             }
-                    //         )
-                    //     ),
-                    //     chunks[1],
-
-                    // )
+                    frame.render_stateful_widget(
+                        render_music(collected_entries.clone()),
+                        chunks[1],
+                        &mut music_events.state
+                    )
                 }
             }
         })?;
@@ -448,6 +437,12 @@ fn main()
         match rx.recv()? {
             Event::Input(event) => match event.code {
                 KeyCode::Char('q') => {
+                    match active_window {
+                        Window::Directory => {}
+                        Window::Music => {
+                            music_sink.stop();
+                        }
+                    }
                     let home = home;
                     let selected_item = &events.items[events.state.selected().unwrap_or(0)];
                     let selected_path = Path::new(selected_item).to_path_buf();
@@ -473,62 +468,121 @@ fn main()
                     }
                 }
                 KeyCode::Down => {
-                    events.next()
+                    match active_window{
+                        Window::Directory => {
+                            events.next()
+                        }
+                        Window::Music => {
+                            music_events.next()
+                        }
+                    }
                 }
                 KeyCode::Up => {
-                    events.previous()
+                    match active_window{
+                        Window::Directory => {
+                            events.previous()
+                        }
+                        Window::Music => {
+                            music_events.previous()
+                        }
+                    }
                 }
                 KeyCode::Enter => {
-                    let selected_item = &events.items[events.state.selected().unwrap_or(0)];
-                    let selected_path = Path::new(selected_item).to_path_buf();
-                    // println!("Path: {}", selected_path.to_str().unwrap());
+                    match active_window {
+                        Window::Directory => {
+                            let selected_item = &events.items[events.state.selected().unwrap_or(0)];
+                            let selected_path = Path::new(selected_item).to_path_buf();
 
+                            if selected_path.as_path().is_dir() {
+                                events = Events::new(
+                                    read_dir(selected_path).unwrap()
+                                    .map(
+                                        | entry: Result<std::fs::DirEntry, std::io::Error> |
+                                        {
+                                            String::from(entry.unwrap().path().to_str().unwrap())
+                                        }
+                                    ).collect()
+                                );
+                            }
+                            events.state.select(Some(0));
+                        }
 
-                    if selected_path.as_path().is_dir() {
-                        events = Events::new(
-                            read_dir(selected_path).unwrap()
-                            .map(
-                                | entry: Result<std::fs::DirEntry, std::io::Error> |
-                                {
-                                    String::from(entry.unwrap().path().to_str().unwrap())
-                                }
-                            ).collect()
-                        );
+                        Window::Music => {}
                     }
-                    events.state.select(Some(0));
                 }
                 KeyCode::Char('c') => {
-                    let selected_item = &events.items[events.state.selected().unwrap_or(0)];
+                    match active_window {
+                        Window::Directory => {
+                            let selected_item = &events.items[events.state.selected().unwrap_or(0)];
+                            music_path = selected_item.to_string();
 
-                    let selected_path = Path::new(selected_item).to_path_buf();
-                    if selected_path.is_dir(){
-                        let walker = WalkDir::new(selected_item).into_iter();
+                            if Path::new(&music_path).to_path_buf().is_dir(){
+                                let walker = WalkDir::new(&music_path).into_iter();
 
-                        let filterd_entries = walker.filter_entry(
-                            | entry |{
-                                !is_hidden(entry)
-                            }
-                        );
-
-                        let collected_entries: Vec<WalkDirEntry> = filterd_entries.map(
-                            | entry: Result<WalkDirEntry, WalkDirError> | {
-                                entry.unwrap()
-                            }
-                        ).collect();
-
-                        events = Events::new(
-                            collected_entries.into_iter()
-                                .filter(
-                                    | entry: &WalkDirEntry | {
-                                        !is_a_dir(entry) &&
-                                        is_a_music_file(entry)
+                                let filterd_entries = walker.filter_entry(
+                                    | entry |{
+                                        !is_hidden(entry)
                                     }
-                                ).map(
-                                    | path: WalkDirEntry | {
-                                        String::from(path.path().to_str().unwrap())
+                                );
+
+                                let intermediate_entries: Vec<WalkDirEntry> = filterd_entries.map(
+                                    | entry: Result<WalkDirEntry, WalkDirError> | {
+                                        entry.unwrap()
                                     }
-                                ).collect()
-                        )
+                                ).collect();
+
+                                collected_entries = intermediate_entries
+                                    .into_iter()
+                                    .filter(
+                                        | entry: &WalkDirEntry | {
+                                            !is_a_dir(entry) &&
+                                            is_a_music_file(entry)
+                                        }
+                                    ).map(
+                                        | entry: WalkDirEntry | {
+                                            entry
+                                        }
+                                    ).collect();
+
+                                music_events = Events::new(
+                                    collected_entries.clone().into_iter()
+                                        .map(
+                                            | entry: WalkDirEntry | {
+                                                String::from(entry.path().to_str().unwrap())
+                                            }
+                                        ).collect()
+                                );
+                            }
+
+                            active_window = Window::Music;
+                            music_events.state.select(Some(0));
+                        }
+                        Window::Music => {}
+                    }
+                }
+                KeyCode::Char('p') => {
+                    match active_window {
+                        Window::Directory => {}
+                        Window::Music => {
+                            if !music_sink.empty() {
+                                if music_sink.is_paused() {
+                                    music_sink.play();
+                                    println!("playing again");
+                                } else {
+                                    music_sink.pause();
+                                    println!("sound is paused");
+                                }
+                            } else {
+                                let selected_item = &music_events.items[music_events.state.selected().unwrap_or(0)];
+                                let music_file = BufReader::new(File::open(selected_item).unwrap());
+                                println!("Selected song: {}", selected_item);
+
+                                let source = Decoder::new(music_file).unwrap();
+
+                                music_sink.append(source);
+                                // music_sink.sleep_until_end();
+                            }
+                        }
                     }
                 }
                 _ => {}
