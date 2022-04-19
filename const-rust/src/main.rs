@@ -3,7 +3,7 @@ use std::default::Default;
 use std::io::{BufReader, stdout};
 use std::env::{var};
 use std::env::consts::{OS};
-use std::fs::{File, FileType, read, read_dir};
+use std::fs::{File, FileType, read_dir};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -14,8 +14,11 @@ use crossterm::{
 };
 use id3::{Tag as ID3Tag, TagLike};
 use metaflac::{Tag as VorbisTag};
-use rodio::{Decoder, OutputStream, Sink};
-use rodio::source::{Source};
+use rodio::{Decoder,
+    OutputStream,
+    Sink
+};
+// use rodio::source::{Source};
 use tui::{
     backend::CrosstermBackend,
     Terminal,
@@ -383,8 +386,8 @@ fn main()
     let mut music_path: String = String::default();
     let mut active_window = Window::Directory;
 
-    // let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    let (music_sink, _) = Sink::new_idle();
+    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    let music_sink = Sink::try_new(&stream_handle).unwrap();
 
     loop {
         terminal.draw(|frame| {
@@ -567,15 +570,15 @@ fn main()
                             if !music_sink.empty() {
                                 if music_sink.is_paused() {
                                     music_sink.play();
-                                    println!("playing again");
+                                    // println!("playing again");
                                 } else {
                                     music_sink.pause();
-                                    println!("sound is paused");
+                                    // println!("sound is paused");
                                 }
                             } else {
                                 let selected_item = &music_events.items[music_events.state.selected().unwrap_or(0)];
                                 let music_file = BufReader::new(File::open(selected_item).unwrap());
-                                println!("Selected song: {}", selected_item);
+                                // println!("Selected song: {}", selected_item);
 
                                 let source = Decoder::new(music_file).unwrap();
 
