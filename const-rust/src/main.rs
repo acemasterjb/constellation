@@ -388,7 +388,7 @@ fn main()
     let mut active_window = Window::Directory;
 
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    let (mut music_sink, _) = Sink::new_idle();
+    // let (mut music_sink, _) = Sink::new_idle();
     
     // let music_queue = &queue;
 
