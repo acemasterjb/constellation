@@ -386,8 +386,8 @@ fn main()
     let mut music_path: String = String::default();
     let mut active_window = Window::Directory;
 
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    let music_sink = Sink::try_new(&stream_handle).unwrap();
+    // let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    let (music_sink, _) = Sink::new_idle();
 
     println!("sink default vol: {}", music_sink.volume());
     music_sink.set_volume(50.0 / 100.0);
