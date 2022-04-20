@@ -393,7 +393,6 @@ fn main()
     // let music_queue = &queue;
 
     // println!("sink default vol: {}", music_sink.volume());
-    // music_sink.set_volume(50.0 / 100.0);
 
     loop {
         terminal.draw(|frame| {
@@ -591,6 +590,7 @@ fn main()
                                 // let queue = queue_rx.cloned();
                                 let (_stream, stream_handle) = OutputStream::try_default().unwrap();
                                 music_sink = stream_handle.play_once(music_file).unwrap();
+                                music_sink.set_volume(50.0 / 100.0);
                                 // music_sink.append(source);
                                 // music_sink.sleep_until_end();
                             }
