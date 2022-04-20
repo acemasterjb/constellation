@@ -387,8 +387,8 @@ fn main()
     let mut music_path: String = String::default();
     let mut active_window = Window::Directory;
 
-    // let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    // let (mut music_sink, _) = Sink::new_idle();
+    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    let (mut music_sink, _) = Sink::new_idle();
     
     // let music_queue = &queue;
 
