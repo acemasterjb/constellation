@@ -596,6 +596,16 @@ fn main()
                         }
                     }
                 }
+                KeyCode::Char('s') => {
+                    match active_window{
+                        Window::Directory => {}
+                        Window::Music => {
+                            if !music_sink.empty() {
+                                music_sink.stop();
+                            }
+                        }
+                    }
+                }
                 _ => {}
             },
             Event::Tick => {}
