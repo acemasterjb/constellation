@@ -592,7 +592,7 @@ fn main()
                                 music_sink = stream_handle.play_once(music_file).unwrap();
                                 music_sink.set_volume(50.0 / 100.0);
                                 // music_sink.append(source);
-                                // music_sink.sleep_until_end();
+                                music_sink.sleep_until_end();
                             }
                         }
                     }
