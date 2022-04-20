@@ -387,8 +387,8 @@ fn main()
     let mut music_path: String = String::default();
     let mut active_window = Window::Directory;
 
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    let (mut music_sink, _) = Sink::new_idle();
+    // let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    // let (mut music_sink, _) = Sink::new_idle();
     
     // let music_queue = &queue;
 
@@ -449,7 +449,7 @@ fn main()
                     match active_window {
                         Window::Directory => {}
                         Window::Music => {
-                            music_sink.stop();
+                            // music_sink.stop();
                         }
                     }
                     let home = home;
@@ -573,39 +573,39 @@ fn main()
                     match active_window {
                         Window::Directory => {}
                         Window::Music => {
-                            if !music_sink.empty() {
-                                if music_sink.is_paused() {
-                                    music_sink.play();
-                                    // println!("playing again");
-                                } else {
-                                    music_sink.pause();
-                                    // println!("sound is paused");
-                                }
-                            } else {
-                                let selected_item = &music_events.items[music_events.state.selected().unwrap_or(0)];
-                                let music_file = BufReader::new(File::open(selected_item).unwrap());
-                                // println!("Selected song: {}", selected_item);
+                            // if !music_sink.empty() {
+                            //     if music_sink.is_paused() {
+                            //         music_sink.play();
+                            //         // println!("playing again");
+                            //     } else {
+                            //         music_sink.pause();
+                            //         // println!("sound is paused");
+                            //     }
+                            // } else {
+                            //     let selected_item = &music_events.items[music_events.state.selected().unwrap_or(0)];
+                            //     let music_file = BufReader::new(File::open(selected_item).unwrap());
+                            //     // println!("Selected song: {}", selected_item);
 
-                                // let source = Decoder::new(music_file).unwrap();
+                            //     // let source = Decoder::new(music_file).unwrap();
 
-                                // let queue = queue_rx.cloned();
-                                music_sink = stream_handle.play_once(music_file).unwrap();
-                                // music_sink.append(source);
-                                // music_sink.sleep_until_end();
-                            }
+                            //     // let queue = queue_rx.cloned();
+                            //     music_sink = stream_handle.play_once(music_file).unwrap();
+                            //     // music_sink.append(source);
+                            //     // music_sink.sleep_until_end();
+                            // }
                         }
                     }
                 }
-                KeyCode::Char('s') => {
-                    match active_window{
-                        Window::Directory => {}
-                        Window::Music => {
-                            if !music_sink.empty() {
-                                music_sink.stop();
-                            }
-                        }
-                    }
-                }
+                // KeyCode::Char('s') => {
+                //     match active_window{
+                //         Window::Directory => {}
+                //         Window::Music => {
+                //             if !music_sink.empty() {
+                //                 music_sink.stop();
+                //             }
+                //         }
+                //     }
+                // }
                 _ => {}
             },
             Event::Tick => {}
