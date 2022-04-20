@@ -389,6 +389,9 @@ fn main()
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
     let music_sink = Sink::try_new(&stream_handle).unwrap();
 
+    println!("sink default vol: {}", music_sink.volume());
+    music_sink.set_volume(50.0 / 100.0);
+
     loop {
         terminal.draw(|frame| {
             let size = frame.size();
@@ -582,6 +585,8 @@ fn main()
 
                                 let source = Decoder::new(music_file).unwrap();
 
+                                // let queue = queue_rx.cloned();
+                                // stream_handle.play_raw(queue);
                                 music_sink.append(source);
                                 // music_sink.sleep_until_end();
                             }
