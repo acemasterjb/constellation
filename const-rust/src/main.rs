@@ -1,10 +1,10 @@
-use std::{thread};
+use std::thread::{self};
 use std::default::Default;
 use std::io::{BufReader, stdout};
 use std::env::{var};
 use std::env::consts::{OS};
-use std::fs::{File, FileType, read_dir};
-use std::path::{Path, PathBuf};
+use std::fs::{File, read_dir};
+use std::path::{Path};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
@@ -18,7 +18,6 @@ use rodio::{
     Decoder,
     OutputStream,
     Sink,
-    source::Source,
 };
 use tui::{
     backend::CrosstermBackend,
@@ -44,16 +43,6 @@ enum Event<I> {
 enum Window {
     Directory,
     Music
-}
-
-trait ADirEntry {
-    fn get_file_name<'a>(&'a self) -> String;
-
-    fn get_path_buf(&self) -> PathBuf;
-
-    fn get_file_type(&self) -> FileType;
-
-    fn get_extension<'a>(&'a self) -> String;
 }
 
 trait WidgetState {
@@ -149,51 +138,10 @@ where
     }
 }
 
-impl ADirEntry for WalkDirEntry {
-    fn get_file_name<'a>(&'a self) -> String{
-        String::from(self.file_name().to_str().unwrap())
-    }
+// // Music Player
+// struct Player {
 
-    fn get_path_buf(&self) -> PathBuf{
-        self.path().to_path_buf()
-    }
-
-    fn get_file_type(&self) -> FileType{
-        self.file_type()
-    }
-
-    fn get_extension<'a>(&'a self) -> String{
-        String::from(
-            self.path().extension()
-                .unwrap()
-                .to_str()
-                .unwrap()
-            )
-    }
-}
-
-impl ADirEntry for std::fs::DirEntry {
-    fn get_file_name(&self) -> String {
-        String::from(self.file_name().to_str().unwrap())
-    }
-
-    fn get_path_buf(&self) -> PathBuf{
-        self.path().to_path_buf()
-    }
-
-    fn get_file_type(&self) -> FileType{
-        self.file_type().unwrap()
-    }
-
-    fn get_extension(&self) -> String {
-        String::from(
-            self.path().extension()
-                .unwrap()
-                .to_str()
-                .unwrap()
-            )
-    }
-}
+// }
 
 // Song Metadata
 struct SongMetadata {
@@ -350,12 +298,12 @@ fn main()
         let mut last_tick = Instant::now();
         loop {
             let timeout = tick_rate
-                .checked_sub(last_tick.elapsed())
-                .unwrap_or_else(|| Duration::from_secs(0));
+                    .checked_sub(last_tick.elapsed())
+                    .unwrap_or_else(|| Duration::from_secs(0));
 
-            if event::poll(timeout).expect("poll works") {
-                if let CEvent::Key(key) = event::read().expect("can read events") {
-                    tx.send(Event::Input(key)).expect("can send events");
+            if event::poll(timeout).expect("polling for events to work") {
+                if let CEvent::Key(key) = event::read().expect("crossterm to read events") {
+                    tx.send(Event::Input(key)).expect("const to send events");
                 }
             }
 
@@ -387,12 +335,57 @@ fn main()
     let mut music_path: String = String::default();
     let mut active_window = Window::Directory;
 
-    // let (_stream, stream_handle) = OutputStream::try_default().unwrap();
     let (mut music_sink, _) = Sink::new_idle();
-    
-    // let music_queue = &queue;
+    let (music_player_tx, music_player_rx) = mpsc::channel();
+    let music_tick_rate = Duration::from_millis(200);
+    let music_thread_join_handle = thread::spawn(
+        move || {
+            let mut last_tick = Instant::now();
+            let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+            let (mut music_sink, _) = Sink::new_idle();
 
-    // println!("sink default vol: {}", music_sink.volume());
+            loop {
+                let timeout = tick_rate
+                    .checked_sub(last_tick.elapsed())
+                    .unwrap_or_else(|| Duration::from_secs(0));
+
+                if event::poll(timeout).expect("polling for music events") {
+                    match music_player_rx.recv() {
+                        Ok((Some(a), Some(b))) => {
+                            if a == "play" {
+                                if !music_sink.empty(){
+                                    if music_sink.is_paused(){
+                                        music_sink.play();
+                                    } else {
+                                        music_sink.pause();
+                                    }
+                                } else {
+                                    music_sink = Sink::try_new(&stream_handle).unwrap();
+                                    music_sink.append(b);
+                                }
+                            }
+                        }
+                        Ok((Some(a), None)) => {
+                            if a == "stop" {
+                                if !music_sink.empty() {
+                                    music_sink.stop();
+                                }
+                            }
+                        }
+                        Ok((None, _)) => {}
+                        Err(_) => {}
+                    }
+                }
+
+                // if last_tick.elapsed() >= tick_rate {
+                //     if let Ok(_) = music_player_tx.send(Event::Tick) {
+                //         last_tick = Instant::now();
+                //     }
+                // }
+            }
+        
+        }
+    );
 
     loop {
         terminal.draw(|frame| {
@@ -403,7 +396,7 @@ fn main()
                 .margin(2)
                 .constraints([
                     Constraint::Length(3),
-                    Constraint::Min(2),
+                    Constraint::Min(2),  // dir/music selector
                     Constraint::Length(3)
                 ].as_ref(),).split(size)
                 
@@ -444,6 +437,7 @@ fn main()
 
         match rx.recv()? {
             Event::Input(event) => match event.code {
+                // quit the program
                 KeyCode::Char('q') => {
                     match active_window {
                         Window::Directory => {}
@@ -475,6 +469,7 @@ fn main()
                         );
                     }
                 }
+                // go down an item
                 KeyCode::Down => {
                     match active_window{
                         Window::Directory => {
@@ -485,6 +480,7 @@ fn main()
                         }
                     }
                 }
+                // go up an item
                 KeyCode::Up => {
                     match active_window{
                         Window::Directory => {
@@ -495,6 +491,7 @@ fn main()
                         }
                     }
                 }
+                // enter a directory
                 KeyCode::Enter => {
                     match active_window {
                         Window::Directory => {
@@ -518,6 +515,7 @@ fn main()
                         Window::Music => {}
                     }
                 }
+                // choose music dir; scan it for songs
                 KeyCode::Char('c') => {
                     match active_window {
                         Window::Directory => {
@@ -568,45 +566,29 @@ fn main()
                         Window::Music => {}
                     }
                 }
+                // pause/play as song
                 KeyCode::Char('p') => {
                     match active_window {
                         Window::Directory => {}
                         Window::Music => {
-                            if !music_sink.empty() {
-                                if music_sink.is_paused() {
-                                    music_sink.play();
-                                    // println!("playing again");
-                                } else {
-                                    music_sink.pause();
-                                    // println!("sound is paused");
-                                }
-                            } else {
-                                let selected_item = &music_events.items[music_events.state.selected().unwrap_or(0)];
-                                let music_file = BufReader::new(File::open(selected_item).unwrap());
-                                // println!("Selected song: {}", selected_item);
+                            let selected_item = &music_events.items[music_events.state.selected().unwrap_or(0)];
+                            let music_file = BufReader::new(File::open(selected_item).unwrap());
 
-                                // let source = Decoder::new(music_file).unwrap();
+                            let source = Decoder::new(music_file).unwrap();
 
-                                // let queue = queue_rx.cloned();
-                                let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-                                music_sink = stream_handle.play_once(music_file).unwrap();
-                                music_sink.set_volume(50.0 / 100.0);
-                                // music_sink.append(source);
-                                music_sink.sleep_until_end();
-                            }
+                            music_player_tx.send((Some("play"), Some(source)));
                         }
                     }
                 }
-                // KeyCode::Char('s') => {
-                //     match active_window{
-                //         Window::Directory => {}
-                //         Window::Music => {
-                //             if !music_sink.empty() {
-                //                 music_sink.stop();
-                //             }
-                //         }
-                //     }
-                // }
+                // stop the music player
+                KeyCode::Char('s') => {
+                    match active_window{
+                        Window::Directory => {}
+                        Window::Music => {
+                            music_player_tx.send((Some("stop"), None));
+                        }
+                    }
+                }
                 _ => {}
             },
             Event::Tick => {}
