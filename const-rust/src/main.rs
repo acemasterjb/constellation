@@ -338,20 +338,20 @@ fn main()
     );
     events.state.select(Some(0));  // select the first item by default
     let mut collected_entries: Vec<WalkDirEntry> = vec![];
-    let mut music_path: String = String::default();
+    let mut music_path: String;
     let mut active_window = Window::Directory;
 
-    let (mut music_sink, _) = Sink::new_idle();
+    let (music_sink, _) = Sink::new_idle();
     let (music_player_tx, music_player_rx) = mpsc::channel();
-    let music_tick_rate = Duration::from_millis(200);
-    let music_thread_join_handle = thread::spawn(
+    let music_tick_rate = Duration::from_millis(300);
+    thread::spawn(
         move || {
-            let mut last_tick = Instant::now();
+            let last_tick = Instant::now();
             let (_stream, stream_handle) = OutputStream::try_default().unwrap();
             let (mut music_sink, _) = Sink::new_idle();
 
             loop {
-                let timeout = tick_rate
+                let timeout = music_tick_rate
                     .checked_sub(last_tick.elapsed())
                     .unwrap_or_else(|| Duration::from_secs(0));
 
