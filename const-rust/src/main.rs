@@ -341,56 +341,40 @@ fn main()
     let mut music_path: String;
     let mut active_window = Window::Directory;
 
-    let (music_sink, _) = Sink::new_idle();
     let (music_player_tx, music_player_rx) = mpsc::channel();
-    let music_tick_rate = Duration::from_millis(300);
     thread::spawn(
         move || {
-            let last_tick = Instant::now();
             let (_stream, stream_handle) = OutputStream::try_default().unwrap();
             let (mut music_sink, _) = Sink::new_idle();
 
             loop {
-                let timeout = music_tick_rate
-                    .checked_sub(last_tick.elapsed())
-                    .unwrap_or_else(|| Duration::from_secs(0));
-
-                if event::poll(timeout).expect("polling for music events") {
-                    match music_player_rx.recv() {
-                        Ok((Some(a), Some(b))) => {
-                            if a == "play" {
-                                if !music_sink.empty(){
-                                    if music_sink.is_paused(){
-                                        music_sink.play();
-                                    } else {
-                                        music_sink.pause();
-                                    }
+                match music_player_rx.recv() {
+                    Ok((Some(a), Some(b))) => {
+                        if a == "play" {
+                            if !music_sink.empty(){
+                                if music_sink.is_paused(){
+                                    music_sink.play();
                                 } else {
-                                    music_sink = Sink::try_new(&stream_handle).unwrap();
-                                    music_sink.append(b);
+                                    music_sink.pause();
                                 }
+                            } else {
+                                music_sink = Sink::try_new(&stream_handle).unwrap();
+                                music_sink.append(b);
                             }
                         }
-                        Ok((Some(a), None)) => {
-                            if a == "stop" {
-                                if !music_sink.empty() {
-                                    music_sink.stop();
-                                }
-                            }
-                        }
-                        Ok((None, _)) => {}
-                        Err(_) => {}
                     }
+                    Ok((Some(a), None)) => {
+                        if a == "stop" {
+                            if !music_sink.empty() {
+                                music_sink.stop();
+                            }
+                        }
+                    }
+                    Ok((None, _)) => {}
+                    Err(_) => {}
                 }
-
-                // if last_tick.elapsed() >= tick_rate {
-                //     if let Ok(_) = music_player_tx.send(Event::Tick) {
-                //         last_tick = Instant::now();
-                //     }
-                // }
             }
-        
-        }
+        }        
     );
 
     loop {
@@ -445,12 +429,6 @@ fn main()
             Event::Input(event) => match event.code {
                 // quit the program
                 KeyCode::Char('q') => {
-                    match active_window {
-                        Window::Directory => {}
-                        Window::Music => {
-                            music_sink.stop();
-                        }
-                    }
                     let home = home;
                     let selected_item = &events.items[events.state.selected().unwrap_or(0)];
                     let selected_path = Path::new(selected_item).to_path_buf();
