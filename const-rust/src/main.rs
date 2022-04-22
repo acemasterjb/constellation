@@ -589,7 +589,7 @@ fn main()
 
                             let source = Decoder::new(music_file).unwrap();
 
-                            music_player_tx.send((Some("play"), Some(source)));
+                            music_player_tx.send((Some("play"), Some(source)))?;
                         }
                     }
                 }
@@ -598,7 +598,7 @@ fn main()
                     match active_window{
                         Window::Directory => {}
                         Window::Music => {
-                            music_player_tx.send((Some("stop"), None));
+                            music_player_tx.send((Some("stop"), None))?;
                         }
                     }
                 }
