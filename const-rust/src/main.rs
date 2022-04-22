@@ -326,8 +326,14 @@ fn main()
     let mut music_events: Events<TableState> = Events::default();
     music_events.state = TableState::default();
     let mut events: Events<ListState> = Events::new(
-        paths.map(| path: Result<std::fs::DirEntry, std::io::Error> | {
-            String::from(path.unwrap().path().to_str().unwrap())
+        paths.filter_map(| path: Result<std::fs::DirEntry, std::io::Error> | {
+            let entry = String::from(path.unwrap().path().to_str().unwrap());
+
+            if !entry.contains(".") {
+                Some(entry)
+            } else {
+                None
+            }
         }).collect()
     );
     events.state.select(Some(0));  // select the first item by default
@@ -460,10 +466,17 @@ fn main()
                         let upper_level = current_path.parent().unwrap();
                         events.set_items(
                             read_dir(upper_level).unwrap()
-                            .map(
+                            .filter_map(
                                 | path: Result<std::fs::DirEntry, std::io::Error> |
                                 {
-                                    String::from(path.unwrap().path().to_str().unwrap())
+                                    let entry =
+                                        String::from(path.unwrap().path().to_str().unwrap());
+                                    
+                                    if !entry.contains(".") {
+                                        Some(entry)
+                                    } else {
+                                        None
+                                    }
                                 }
                             ).collect()
                         );
