@@ -552,14 +552,14 @@ fn main()
 
                                 collected_entries = intermediate_entries
                                     .into_iter()
-                                    .filter(
-                                        | entry: &WalkDirEntry | {
-                                            !is_a_dir(entry) &&
-                                            is_a_music_file(entry)
-                                        }
-                                    ).map(
+                                    .filter_map(
                                         | entry: WalkDirEntry | {
-                                            entry
+                                            if !is_a_dir(&entry) &&
+                                            is_a_music_file(&entry) {
+                                                Some(entry)
+                                            } else {
+                                                None
+                                            }
                                         }
                                     ).collect();
 
