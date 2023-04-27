@@ -1,5 +1,5 @@
 from .quark import *
-from .lumen import *
-from .DirectoryList import *
+from ..types.Lumen import *
+from ..types.DirectoryList import *
 
 __version__ = '0.1'

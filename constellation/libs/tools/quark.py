@@ -1,11 +1,20 @@
-import os
+from os import (
+    environ, scandir, pardir, remove
+)
+from os.path import (
+    abspath,
+    dirname as _dirname,
+    exists,
+    join
+)
+from platform import system
 
-from tkinter import filedialog
-from tkinter import *
-from .DirectoryList import DirectoryList
+from ..types.DirectoryList import DirectoryList
 
-musiclib = os.environ['USERPROFILE'] + '\\music'
-root = Tk()
+HOME = environ['USERPROFILE'] \
+    if system() == "Windows" else \
+    environ["HOME"]
+MUSIC_DIR = join(HOME, "music")
 
 
 def b_to_i(in_bytes):
@@ -17,11 +26,11 @@ def b_to_i(in_bytes):
         int(in_bytes / 6e4 % 60), int(in_bytes / 1e3 % 60)))
 
 
-def dir_exists(file):
-    return os.path.exists(file)
+def dir_exists(file: str):
+    return exists(file)
 
 
-def is_audio(file):
+def is_audio(file: str):
     try:
         if file.endswith(('.mp3', '.flac',)):
             return True
@@ -30,12 +39,12 @@ def is_audio(file):
     return False
 
 
-def i_del(item):
-    os.remove(item)
+def i_del(item: str):
+    remove(item)
 
 
-def dirname(directory):
-    return os.path.dirname(directory)
+def dirname(directory: str):
+    return _dirname(directory)
 
 
 def check_album(song, key):
@@ -54,11 +63,13 @@ def check_artist(song, key):
         return True
 
 
-def dirscanner(directory, llist):
+def dirscanner(directory: str, llist: DirectoryList):
     """
         Scan a directory and return a list of files and
         directories contained within.
 
+        Parameters
+        ---
         directory: iterator of os.DirEntry objects
 
         node: LinkedList node which every element in directory will be
@@ -67,7 +78,7 @@ def dirscanner(directory, llist):
               to the folder.
     """
 
-    with os.scandir(directory) as folder:
+    with scandir(directory) as folder:
         for element in folder:
             llist.append(element)
             if element.is_dir():
@@ -82,32 +93,26 @@ def getpardir(currdir):
     """
         returns a <str> of the parent directory's path
     """
-    return(os.path.abspath(os.path.join(currdir, os.pardir)))
+    return(abspath(join(currdir, pardir)))
 
 
-def getdir(seek=0, wdir=musiclib):
+def getdir(wdir=MUSIC_DIR) -> DirectoryList:
     """
-        Prompt to open a directory, scan it and return
-        a list of files and directories contained within.
+        Gets file and child directory contents from a parent directory
 
-        If seek=1 then just scan a given directory (wdir)
-        and return files and directories within.
+        Parameters
+        ---
+        wdir: str - the working directory for this program
 
-        wdir: iterator of os.DirEntry objects
+        Returns
+        ---
+        A `DirectoryList` containing a tree of directories and their files
     """
 
     llist = DirectoryList()
-
-    if seek and wdir:
-        root.items = dirscanner(wdir, llist)
-    else:
-        wtitle = 'Choose music library'
-        root.directory = filedialog.askdirectory(
-            initialdir=wdir, title=wtitle)
-        root.update()
-
-        root.items = dirscanner(root.directory, llist)
-
-        root.destroy()
+    dirscanner(
+        wdir if dir_exists(wdir) else HOME,
+        llist
+    )
 
     return(llist)

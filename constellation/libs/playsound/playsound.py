@@ -38,19 +38,19 @@ class playsoundBase(ABC):
 
     @abstractmethod
     def play(self, sound, block):
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractmethod
     def stop(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractmethod
     def pause(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractmethod
     def resume(self, block):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class playsoundWin(playsoundBase):
@@ -173,7 +173,9 @@ class playsoundOSX(playsoundBase):
                 sound = getcwd() + '/' + sound
             sound = 'file://' + sound
         url = NSURL.URLWithString_(sound)
-        self.nssound = NSSound.alloc().initWithContentsOfURL_byReference_(url, True)
+        self.nssound = NSSound.alloc().initWithContentsOfURL_byReference_(
+            url, True
+        )
         if not self.nssound:
             raise IOError('Unable to load sound named: ' + sound)
         self.is_playing = True
@@ -238,7 +240,7 @@ class playsoundNix(playsoundBase):
         playbin.set_state(Gst.State.NULL)
 
     def stop(self):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 if operating_system == 'Windows':
